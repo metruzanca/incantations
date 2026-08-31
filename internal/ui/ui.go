@@ -4,12 +4,12 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Styled enables color styling. main.go sets it when stdout is a terminal;
@@ -18,27 +18,31 @@ var Styled = false
 
 // NewTable renders a table with the given headers and rows. right marks the
 // numeric columns that should be right-justified. Column widths are sized to
-// the widest header or cell.
+// the widest header or cell, measured in terminal cells (multibyte block
+// characters such as progress bars count as one cell).
 func NewTable(headers []string, right []bool, rows [][]string) string {
 	if len(headers) == 0 {
 		return ""
 	}
 	widths := make([]int, len(headers))
 	for i, h := range headers {
-		widths[i] = len(h)
+		widths[i] = ansi.StringWidth(h)
 	}
 	for _, r := range rows {
 		for i, c := range r {
-			if l := len(c); l > widths[i] {
+			if l := ansi.StringWidth(c); l > widths[i] {
 				widths[i] = l
 			}
 		}
 	}
+	padRight := func(s string, w int) string {
+		return strings.Repeat(" ", w-ansi.StringWidth(s)) + s
+	}
 	cols := make([]table.Column, len(headers))
 	for i := range headers {
 		title := headers[i]
-		if right[i] && len(title) < widths[i] {
-			title = fmt.Sprintf("%*s", widths[i], title)
+		if right[i] {
+			title = padRight(title, widths[i])
 		}
 		cols[i] = table.Column{Title: title, Width: widths[i]}
 	}
@@ -46,8 +50,8 @@ func NewTable(headers []string, right []bool, rows [][]string) string {
 	for _, r := range rows {
 		row := make(table.Row, len(headers))
 		for i, c := range r {
-			if right[i] && len(c) < widths[i] {
-				c = fmt.Sprintf("%*s", widths[i], c)
+			if right[i] {
+				c = padRight(c, widths[i])
 			}
 			row[i] = c
 		}

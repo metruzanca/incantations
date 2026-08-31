@@ -3,6 +3,8 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestProgressBarDeterministic(t *testing.T) {
@@ -32,5 +34,24 @@ func TestProgressBarEmptyAndFull(t *testing.T) {
 	full := ProgressBar(1, 10)
 	if strings.Trim(full, "█") != "" {
 		t.Errorf("full bar should be all '█': %q", full)
+	}
+}
+
+func TestNewTableMultibyteWidths(t *testing.T) {
+	// Block characters are 3 bytes but one terminal cell; a byte-based width
+	// would over-inflate the column and wrap the row.
+	out := NewTable(
+		[]string{"USAGE", "MOUNT"},
+		[]bool{false, false},
+		[][]string{{"████░░░ 24%", "/"}},
+	)
+	lines := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected exactly 2 lines, got %d:\n%q", len(lines), out)
+	}
+	for _, line := range lines {
+		if ansi.StringWidth(line) > 40 {
+			t.Errorf("row way too wide (%d cells): %q", ansi.StringWidth(line), line)
+		}
 	}
 }
