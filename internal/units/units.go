@@ -12,17 +12,18 @@ func Pct(part, whole uint64) float64 {
 	return float64(part) * 100 / float64(whole)
 }
 
-// HumanKiB renders a KiB count using binary (1024) units, e.g. 3145728 -> "3.0 GiB".
-func HumanKiB(kib uint64) string {
-	const unit = 1024
-	if kib < unit {
-		return fmt.Sprintf("%d KiB", kib)
+// HumanMemory renders a KiB count using decimal units (GB, MB), which is what
+// people who are not storage engineers expect to see.
+func HumanMemory(kib uint64) string {
+	b := float64(kib) * 1024
+	switch {
+	case b >= 1e12:
+		return fmt.Sprintf("%.1f TB", b/1e12)
+	case b >= 1e9:
+		return fmt.Sprintf("%.1f GB", b/1e9)
+	case b >= 1e6:
+		return fmt.Sprintf("%.1f MB", b/1e6)
+	default:
+		return fmt.Sprintf("%.0f KB", b/1e3)
 	}
-	exp := 0
-	v := float64(kib)
-	for v >= unit && exp < 5 {
-		v /= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", v, "KMGTPE"[exp])
 }

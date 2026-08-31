@@ -31,7 +31,10 @@ greenscreen.
   bash/zsh share one template; fish differs (`$argv`). Golden files live in
   `testdata/`; regenerate with `-update`. `init` accepts normalized names
   (`/bin/zsh`, `zsh`, `ZSH` → `zsh`).
-- `internal/logutil`, `internal/units` — shared plumbing (see below).
+- `internal/logutil`, `internal/units`, `internal/ui` — shared plumbing. `units`
+  uses decimal GB/MB (laymen units); `ui.NewTable` renders charmbracelet tables
+  and is always plain in tests (goldens stay escape-free). Enable `ui.Styled`
+  only from main when stdout is a terminal.
 
 ## How a command works
 

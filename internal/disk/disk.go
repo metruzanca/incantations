@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/metruzanca/incantations/internal/command"
+	"github.com/metruzanca/incantations/internal/ui"
 )
 
 // Row is a single parsed df entry for one filesystem.
@@ -95,16 +95,28 @@ func parseDf(r io.Reader) ([]Row, error) {
 func Render(r *Report) string {
 	rows := append([]Row(nil), r.Rows...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].UsePct > rows[j].UsePct })
-	var b strings.Builder
-	b.WriteString("Disk usage\n")
-	w := tabwriter.NewWriter(&b, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "Filesystem\tType\tSize\tUsed\tAvail\tUse%\tMounted on")
+	var out [][]string
 	for _, row := range rows {
 		if hiddenTypes[row.Type] {
 			continue
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%5.0f%%\t%s\n", row.Filesystem, row.Type, row.Size, row.Used, row.Avail, row.UsePct, row.Mount)
+		out = append(out, []string{
+			row.Filesystem,
+			row.Type,
+			row.Size,
+			row.Used,
+			row.Avail,
+			fmt.Sprintf("%.0f%%", row.UsePct),
+			row.Mount,
+		})
 	}
-	w.Flush()
+	var b strings.Builder
+	b.WriteString("Disk usage\n")
+	b.WriteString(ui.NewTable(
+		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USED %", "MOUNTED ON"},
+		[]bool{false, false, true, true, true, true, false},
+		out,
+	))
+	b.WriteString("\n")
 	return b.String()
 }

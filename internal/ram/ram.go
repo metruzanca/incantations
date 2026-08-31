@@ -4,10 +4,11 @@ package ram
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/metruzanca/incantations/internal/command"
+	"github.com/metruzanca/incantations/internal/ui"
 	"github.com/metruzanca/incantations/internal/units"
 )
 
@@ -57,19 +58,28 @@ func Spec() command.Entry {
 func Render(r *Report) string {
 	var b strings.Builder
 	m := r.Mem
-	b.WriteString("Memory\n")
-	fmt.Fprintf(&b, "%-13s %-8s\n", "Total", units.HumanKiB(m.TotalKiB))
-	fmt.Fprintf(&b, "%-13s %-8s %5.1f%%\n", "Used", units.HumanKiB(m.UsedKiB), units.Pct(m.UsedKiB, m.TotalKiB))
-	fmt.Fprintf(&b, "%-13s %-8s\n", "Available", units.HumanKiB(m.AvailableKiB))
-	fmt.Fprintf(&b, "%-13s %-8s\n", "Buffers/cache", units.HumanKiB(m.BuffersKiB+m.CachedKiB))
+	b.WriteString("RAM\n")
+	fmt.Fprintf(&b, "%-13s %s\n", "Total", units.HumanMemory(m.TotalKiB))
+	fmt.Fprintf(&b, "%-13s %s %4.0f%%\n", "Used", units.HumanMemory(m.UsedKiB), units.Pct(m.UsedKiB, m.TotalKiB))
+	fmt.Fprintf(&b, "%-13s %s\n", "Available", units.HumanMemory(m.AvailableKiB))
+	fmt.Fprintf(&b, "%-13s %s\n", "Cache", units.HumanMemory(m.BuffersKiB+m.CachedKiB))
 	if len(r.Procs) > 0 {
 		b.WriteString("\nTop processes by memory\n")
-		w := tabwriter.NewWriter(&b, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "RSS\t%VMEM\tCOUNT\tCOMMAND")
+		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
-			fmt.Fprintf(w, "%s\t%5.1f%%\t%d\t%s\n", units.HumanKiB(p.RSSKiB), units.Pct(p.RSSKiB, m.TotalKiB), p.Count, p.Name)
+			rows = append(rows, []string{
+				p.Name,
+				units.HumanMemory(p.RSSKiB),
+				strconv.Itoa(p.Count),
+				fmt.Sprintf("%.1f%%", units.Pct(p.RSSKiB, m.TotalKiB)),
+			})
 		}
-		w.Flush()
+		b.WriteString(ui.NewTable(
+			[]string{"COMMAND", "MEMORY", "PROCESSES", "% OF MEMORY"},
+			[]bool{false, true, true, true},
+			rows,
+		))
+		b.WriteString("\n")
 	}
 	return b.String()
 }

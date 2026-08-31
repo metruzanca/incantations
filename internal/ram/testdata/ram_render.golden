@@ -1,10 +1,10 @@
-Memory
-Total         31.2 GiB
-Used          17.2 GiB  55.2%
-Available     14.0 GiB
-Buffers/cache 12.8 GiB
+RAM
+Total         33.5 GB
+Used          18.5 GB   55%
+Available     15.0 GB
+Cache         13.8 GB
 
 Top processes by memory
-RSS      %VMEM   COUNT  COMMAND
-1.4 GiB    4.4%  1      chrome
-2.0 MiB    0.0%  1      kthreadd
+ COMMAND   MEMORY  PROCESSES  % OF MEMORY 
+  chrome    1.5 GB          1         4.4%  
+ kthreadd  2.1 MB          1         0.0%   

@@ -51,38 +51,40 @@ won't ever require changes to your shell config.
 
 ```
 $ ram
-Memory
-Total         31.2 GiB
-Used          16.7 GiB  53.4%
-Available     14.5 GiB
-Buffers/cache 13.3 GiB
+RAM
+Total         33.5 GB
+Used          17.2 GB   51%
+Available     16.3 GB
+Cache         13.1 GB
 
 Top processes by memory
-RSS        %VMEM   COUNT  COMMAND
-7.8 GiB     24.9%  37     brave
-6.2 GiB     19.9%  8      opencode
-2.1 GiB      6.6%  12     steamwebhelper
+ COMMAND         MEMORY  PROCESSES  % OF MEMORY 
+  brave           9.0 GB         37        27.1%  
+ opencode        6.6 GB          8        20.0%   
+ steamwebhelper  1.9 GB         12         5.7%   
 ```
 
 ```
 $ cpu
-CPU utilization (over 300ms)
-User:       8.7%
-System:     2.7%
-Idle:      88.6%
-Load average (1m 5m 15m): 2.32 1.95 1.86
+CPU usage (last 300ms)
+Programs        9.3%
+System          2.9%
+Idle           87.8%
+Load (1m 5m 15m) 2.01 1.83 1.77
 
 Top processes by CPU
-  PID     %CPU    RSS        COMMAND
-  533343   40.0%  909.1 MiB  .opencode-wrapp
+ COMMAND            PID    CPU  MEMORY 
+  opencode            533343  45.0%  900 MB  
+ gpu-screen-recorder  318925  20.0%  448 MB  
+ gnome-shell          3024    10.0%  459 MB  
 ```
 
 ```
 $ disk
 Disk usage
-Filesystem      Type  Size   Used  Avail  Use%    Mounted on
-/dev/nvme0n1p2  ext4  1.7T   376G  1.3T      24%  /
-/dev/nvme0n1p1  vfat  1022M  240M  783M      24%  /boot
+ FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USED %  MOUNTED ON 
+  /dev/nvme0n1p2  ext4  1.7T  376G       1.3T     24%  /           
+ /dev/nvme0n1p1  vfat  1022M  240M       783M     24%  /boot        
 ```
 
 ## Troubleshooting

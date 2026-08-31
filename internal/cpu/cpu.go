@@ -9,10 +9,10 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/metruzanca/incantations/internal/command"
+	"github.com/metruzanca/incantations/internal/ui"
 	"github.com/metruzanca/incantations/internal/units"
 )
 
@@ -227,19 +227,28 @@ func Spec() command.Entry {
 // Render formats a report for humans, most CPU-heavy first.
 func Render(r *Report) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "CPU utilization (over %dms)\n", r.Window.Milliseconds())
-	fmt.Fprintf(&b, "%-8s %6.1f%%\n", "User:", r.User)
-	fmt.Fprintf(&b, "%-8s %6.1f%%\n", "System:", r.System)
-	fmt.Fprintf(&b, "%-8s %6.1f%%\n", "Idle:", r.Idle)
-	fmt.Fprintf(&b, "%s %.2f %.2f %.2f\n", "Load average (1m 5m 15m):", r.Load[0], r.Load[1], r.Load[2])
+	fmt.Fprintf(&b, "CPU usage (last %dms)\n", r.Window.Milliseconds())
+	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Programs", r.User)
+	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "System", r.System)
+	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Idle", r.Idle)
+	fmt.Fprintf(&b, "%-12s %.2f %.2f %.2f\n", "Load (1m 5m 15m)", r.Load[0], r.Load[1], r.Load[2])
 	if len(r.Procs) > 0 {
 		b.WriteString("\nTop processes by CPU\n")
-		w := tabwriter.NewWriter(&b, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "  PID\t%CPU\tRSS\tCOMMAND")
+		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
-			fmt.Fprintf(w, "  %d\t%5.1f%%\t%s\t%s\n", p.PID, p.CPU, units.HumanKiB(p.RSSKiB), p.Name)
+			rows = append(rows, []string{
+				p.Name,
+				strconv.Itoa(p.PID),
+				fmt.Sprintf("%.1f%%", p.CPU),
+				units.HumanMemory(p.RSSKiB),
+			})
 		}
-		w.Flush()
+		b.WriteString(ui.NewTable(
+			[]string{"COMMAND", "PID", "CPU", "MEMORY"},
+			[]bool{false, true, true, true},
+			rows,
+		))
+		b.WriteString("\n")
 	}
 	return b.String()
 }
