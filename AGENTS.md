@@ -71,7 +71,9 @@ functions from the registry automatically.
 - Non-Linux `ram`/`cpu` use `*_unsupported.go` stubs. To support a new OS add
   a build-tagged `Sample` — keep the render/parse core untouched.
 - Hardcoded assumptions, kept intentionally simple (call them out if they
-  bite): `userHZ = 100` ticks/sec, 4096-byte pages (`rss pages * 4`).
+  bite): 4096-byte pages (`rss pages * 4`), and `cpu` reports process usage as
+  a percentage of the whole CPU (normalized against the system-wide
+  `/proc/stat` tick delta) rather than of one core.
 
 ## Debug logging
 

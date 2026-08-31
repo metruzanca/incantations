@@ -112,12 +112,13 @@ func Sample() (*Report, error) {
 		return nil, err
 	}
 	user, system, idle := UsageDeltas(before, after)
+	total := after.Total() - before.Total()
 	return &Report{
 		User:   user,
 		System: system,
 		Idle:   idle,
 		Load:   load,
 		Window: window,
-		Procs:  ProcDeltas(procsBefore, procsAfter, window),
+		Procs:  ProcDeltas(procsBefore, procsAfter, total),
 	}, nil
 }

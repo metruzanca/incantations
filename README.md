@@ -74,11 +74,13 @@ Idle           87.8%
 Load (1m 5m 15m) 2.01 1.83 1.77
 
 Top processes by CPU
- COMMAND            PID    CPU  MEMORY 
-  opencode            533343  45.0%  900 MB  
- gpu-screen-recorder  318925  20.0%  448 MB  
- gnome-shell          3024    10.0%  459 MB  
+ COMMAND            PID  % OF CPU  MEMORY 
+  opencode            533343      4.5%  900 MB  
+ gpu-screen-recorder  318925      1.7%  448 MB  
+ gnome-shell          3024       0.8%  459 MB  
 ```
+
+Percentages are of the whole CPU (all cores combined), not per core.
 
 ```
 $ disk

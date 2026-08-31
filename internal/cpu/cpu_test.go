@@ -140,25 +140,35 @@ func TestProcDeltas(t *testing.T) {
 		2: {PID: 2, Name: "quiet", Utime: 1000, Stime: 1000},
 		3: {PID: 3, Name: "half", Utime: 10050, Stime: 0},
 	}
-	procs := ProcDeltas(before, after, time.Second)
-	// busy: 100 ticks => 100%. half: 50 ticks => 50%. quiet: 0 ticks => dropped.
+	// 400 ticks burned system-wide in the window. busy used 100 => 25% of the
+	// whole CPU; half used 50 => 12.5%; quiet moved none and is dropped.
+	procs := ProcDeltas(before, after, 400)
 	if len(procs) != 2 {
 		t.Fatalf("procs = %d, want 2", len(procs))
 	}
-	if procs[0].PID != 1 || procs[0].CPU != 100 {
-		t.Errorf("top proc = %+v, want PID 1 at 100%%", procs[0])
+	if procs[0].PID != 1 || procs[0].CPU != 25 {
+		t.Errorf("top proc = %+v, want PID 1 at 25%%", procs[0])
 	}
-	if procs[1].PID != 3 || procs[1].CPU != 50 {
-		t.Errorf("second proc = %+v, want PID 3 at 50%%", procs[1])
+	if procs[1].PID != 3 || procs[1].CPU != 12.5 {
+		t.Errorf("second proc = %+v, want PID 3 at 12.5%%", procs[1])
 	}
 	if procs[0].RSSKiB != 2048 {
 		t.Errorf("RSS KiB should come from the later snapshot, got %d", procs[0].RSSKiB)
 	}
 }
 
-func TestProcDeltasZeroElapsed(t *testing.T) {
+func TestProcDeltasZeroTotalTicks(t *testing.T) {
 	if got := ProcDeltas(map[int]ProcTick{1: {}}, map[int]ProcTick{1: {}}, 0); got != nil {
-		t.Errorf("expected nil/empty for zero elapsed, got %v", got)
+		t.Errorf("expected nil/empty for zero system ticks, got %v", got)
+	}
+}
+
+func TestProcDeltasMinPercent(t *testing.T) {
+	before := map[int]ProcTick{7: {PID: 7, Name: "tiny", Utime: 1000}}
+	after := map[int]ProcTick{7: {PID: 7, Name: "tiny", Utime: 1010}}
+	// 10 ticks against a large 100000-tick window is 0.01%, below cpuMinPercent.
+	if got := ProcDeltas(before, after, 100000); len(got) != 0 {
+		t.Errorf("expected tiny share filtered out, got %+v", got)
 	}
 }
 

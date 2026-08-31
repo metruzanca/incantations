@@ -16,16 +16,12 @@ import (
 	"github.com/metruzanca/incantations/internal/units"
 )
 
-// userHZ is Linux's USER_HZ clock tick rate. A core running at 100% consumes
-// userHZ ticks per second of wall time.
-const userHZ = 100
-
 // Limit is the number of top processes shown.
 const Limit = 10
 
-// cpuMinPercent is the smallest per-process CPU share worth reporting, which
+// cpuMinPercent is the smallest share of the whole CPU worth reporting, which
 // keeps sampler noise and idle threads out of the list.
-const cpuMinPercent = 0.5
+const cpuMinPercent = 0.1
 
 // CPUStat is an aggregate snapshot of /proc/stat's cpu line, in ticks.
 type CPUStat struct {
@@ -64,7 +60,7 @@ type ProcTick struct {
 type Proc struct {
 	PID    int
 	Name   string
-	CPU    float64 // percent of one core
+	CPU    float64 // percent of the whole CPU, all cores combined
 	RSSKiB uint64
 }
 
@@ -76,10 +72,12 @@ type Report struct {
 	Procs              []Proc
 }
 
-// ProcDeltas derives per-process CPU usage from two samples.
-func ProcDeltas(before, after map[int]ProcTick, elapsed time.Duration) []Proc {
+// ProcDeltas derives per-process CPU usage from two sampling passes, scaled to
+// the total CPU ticks burned across all cores in the window, so a process's
+// share is a percentage of the whole CPU rather than of a single core.
+func ProcDeltas(before, after map[int]ProcTick, totalTicks uint64) []Proc {
 	var procs []Proc
-	if elapsed <= 0 {
+	if totalTicks == 0 {
 		return procs
 	}
 	for pid, prev := range before {
@@ -91,7 +89,7 @@ func ProcDeltas(before, after map[int]ProcTick, elapsed time.Duration) []Proc {
 		if ticks <= 0 {
 			continue
 		}
-		cpu := 100 * float64(ticks) / (elapsed.Seconds() * userHZ)
+		cpu := 100 * float64(ticks) / float64(totalTicks)
 		if cpu < cpuMinPercent {
 			continue
 		}
@@ -244,7 +242,7 @@ func Render(r *Report) string {
 			})
 		}
 		b.WriteString(ui.NewTable(
-			[]string{"COMMAND", "PID", "CPU", "MEMORY"},
+			[]string{"COMMAND", "PID", "% OF CPU", "MEMORY"},
 			[]bool{false, true, true, true},
 			rows,
 		))
