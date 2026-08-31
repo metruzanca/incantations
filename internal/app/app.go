@@ -10,6 +10,7 @@ import (
 
 	"github.com/metruzanca/incantations/internal/command"
 	"github.com/metruzanca/incantations/internal/logutil"
+	"github.com/metruzanca/incantations/internal/ram"
 	"github.com/metruzanca/incantations/internal/shell"
 )
 
@@ -31,6 +32,7 @@ type App struct {
 // keeps working as new utilities are added.
 func New(stdout, stderr io.Writer, extra ...command.Entry) *App {
 	reg := command.New()
+	reg.Add(ram.Spec())
 	for _, e := range extra {
 		reg.Add(e)
 	}

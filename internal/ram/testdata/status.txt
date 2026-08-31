@@ -1,0 +1,20 @@
+Name:	chrome
+Umask:	0022
+State:	S (sleeping)
+Tgid:	26634
+Pid:	26634
+PPid:	1
+VmPeak:	  5046212 kB
+VmSize:	  4821234 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	  1425408 kB
+VmRSS:	  1425408 kB
+RssAnon:	   889344 kB
+RssFile:	   535992 kB
+RssShmem:	     1024 kB
+VmData:	  2781184 kB
+VmStk:	     132 kB
+VmExe:	    2048 kB
+VmLib:	   34956 kB
+Threads:	42

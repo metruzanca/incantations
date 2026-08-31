@@ -1,0 +1,10 @@
+Memory
+Total         31.2 GiB
+Used          17.2 GiB  55.2%
+Available     14.0 GiB
+Buffers/cache 12.8 GiB
+
+Top processes by memory
+  PID      RSS         %VMEM  COMMAND
+  26634    1.4 GiB      4.4%  chrome
+  7        2.0 MiB      0.0%  kthreadd

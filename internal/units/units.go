@@ -18,10 +18,11 @@ func HumanKiB(kib uint64) string {
 	if kib < unit {
 		return fmt.Sprintf("%d KiB", kib)
 	}
-	div, exp := uint64(unit), 0
-	for n := kib / unit; n >= unit; n /= unit {
-		div *= unit
+	exp := 0
+	v := float64(kib)
+	for v >= unit && exp < 5 {
+		v /= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %ciB", float64(kib)/float64(div), "KMGTPE"[exp])
+	return fmt.Sprintf("%.1f %ciB", v, "KMGTPE"[exp])
 }
