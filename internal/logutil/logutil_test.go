@@ -17,6 +17,15 @@ func TestDebugDisabledByDefault(t *testing.T) {
 	}
 }
 
+func TestLogEnabledByINCTLogAlone(t *testing.T) {
+	t.Setenv("INCT_DEBUG", "")
+	t.Setenv("INCT_LOG", filepath.Join(t.TempDir(), "debug.log"))
+	if !Init() {
+		t.Fatal("INCT_LOG alone should enable file logging")
+	}
+	t.Cleanup(Close)
+}
+
 func TestLogPathOverride(t *testing.T) {
 	t.Setenv("INCT_DEBUG", "1")
 	dir := t.TempDir()

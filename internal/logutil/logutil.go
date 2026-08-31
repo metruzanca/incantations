@@ -1,10 +1,10 @@
 // Package logutil provides debug logging to a file. Logs never go to stdout or
 // stderr so generated shell integration (a copy of stdout) stays clean.
 //
-// Logging is disabled unless INCT_DEBUG is set to a truthy value. The log file
-// location can be overridden with INCT_LOG; otherwise it defaults to
-// $XDG_STATE_HOME/incantations/incantations.log (~/.local/state on Linux,
-// ~/Library/Logs on macOS).
+// Logging is disabled unless INCT_DEBUG is set to a truthy value (or INCT_LOG
+// is set). The log file location can be overridden with INCT_LOG; otherwise it
+// defaults to $XDG_STATE_HOME/incantations/incantations.log (~/.local/state on
+// Linux, ~/Library/Logs on macOS).
 package logutil
 
 import (
@@ -100,6 +100,10 @@ func logf(level, format string, args ...any) {
 }
 
 func debugEnabled() bool {
+	// INCT_LOG alone is enough to enable file logging at that path.
+	if os.Getenv("INCT_LOG") != "" {
+		return true
+	}
 	v := os.Getenv("INCT_DEBUG")
 	return v != "" && v != "0"
 }
