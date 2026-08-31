@@ -1,0 +1,12 @@
+# incantations init fish (generated, do not edit)
+function cpu
+    incantations cpu $argv
+end
+
+function disk
+    incantations disk $argv
+end
+
+function ram
+    incantations ram $argv
+end

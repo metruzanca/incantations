@@ -1,0 +1,12 @@
+# incantations init bash (generated, do not edit)
+cpu() {
+    incantations cpu "$@"
+}
+
+disk() {
+    incantations disk "$@"
+}
+
+ram() {
+    incantations ram "$@"
+}
