@@ -141,13 +141,11 @@ func Render(r *Report, showAll bool) string {
 	rows := append([]Row(nil), r.Rows...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].UsePct > rows[j].UsePct })
 	var out [][]string
-	var hidden int
 	for _, row := range rows {
 		if hiddenTypes[row.Type] {
 			continue
 		}
 		if !showAll && sizeValue(row.Size) < minVisibleSize {
-			hidden++
 			continue
 		}
 		out = append(out, []string{
@@ -167,11 +165,7 @@ func Render(r *Report, showAll bool) string {
 		[]bool{false, false, true, true, true, true, false},
 		out,
 	))
-	if hidden > 0 {
-		b.WriteString("\nSome small filesystems are hidden; use incantations disk -a to show them.\n")
-	} else {
-		b.WriteString("\n")
-	}
+	b.WriteString("\n")
 	return b.String()
 }
 

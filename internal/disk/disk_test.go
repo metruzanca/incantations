@@ -124,15 +124,9 @@ func TestSmallFilesystemsHiddenUnlessAll(t *testing.T) {
 	if strings.Contains(defaultOut, "/boot") {
 		t.Error("/boot (1022M) should be hidden by default")
 	}
-	if !strings.Contains(defaultOut, "hidden") && !strings.Contains(defaultOut, "-a") {
-		t.Error("expected a hint when small filesystems are hidden")
-	}
 	allOut := Render(&Report{Rows: rows}, true)
 	if !strings.Contains(allOut, "/boot") {
 		t.Error("-a should show /boot")
-	}
-	if strings.Contains(allOut, "hidden") {
-		t.Error("-a output should not claim small filesystems are hidden")
 	}
 }
 
