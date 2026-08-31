@@ -101,13 +101,56 @@ func TestInitShellTakesPrecedence(t *testing.T) {
 	}
 }
 
-func TestInitMissingShell(t *testing.T) {
-	_, errOut, code := run(t, "init")
-	if code != 1 {
-		t.Fatalf("exit = %d, want 1", code)
+func TestInitNoShellShowsSetup(t *testing.T) {
+	t.Setenv("SHELL", "/usr/bin/fish")
+	out, errOut, code := run(t, "init")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
 	}
-	if !strings.Contains(errOut, "usage: incantations init") {
-		t.Errorf("stderr = %q", errOut)
+	if !strings.Contains(out, "No shell specified.") {
+		t.Errorf("expected a friendly no-shell message, got %q", out)
+	}
+	for _, want := range []string{"fish", "config.fish", ">>"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("init setup missing %q:\n%s", want, out)
+		}
+	}
+	if errOut != "" {
+		t.Errorf("stderr should be empty, got %q", errOut)
+	}
+}
+
+func TestInitHelpDetectsShell(t *testing.T) {
+	for _, tc := range []struct{ shell, want string }{
+		{"/bin/zsh", "~/.zshrc"},
+		{"/usr/bin/fish", "~/.config/fish/config.fish"},
+		{"/bin/bash", "~/.bashrc"},
+	} {
+		t.Run(tc.shell, func(t *testing.T) {
+			t.Setenv("SHELL", tc.shell)
+			out, _, code := run(t, "init", "--help")
+			if code != 0 {
+				t.Fatalf("exit = %d, want 0", code)
+			}
+			if !strings.Contains(out, "Your shell looks like") || !strings.Contains(out, tc.want) {
+				t.Errorf("init --help should name the shell and its config %q:\n%s", tc.want, out)
+			}
+		})
+	}
+}
+
+func TestInitHelpListsAllWhenUndetected(t *testing.T) {
+	t.Setenv("SHELL", "")
+	t.Setenv("BASH_VERSION", "")
+	t.Setenv("ZSH_VERSION", "")
+	out, _, code := run(t, "init", "--help")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	for _, want := range []string{"bash", "zsh", "fish", ">>"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("undetected-shell help missing %q", want)
+		}
 	}
 }
 

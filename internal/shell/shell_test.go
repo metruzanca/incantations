@@ -38,6 +38,47 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+func TestDetectShell(t *testing.T) {
+	cases := []struct {
+		env  map[string]string
+		want string
+	}{
+		{map[string]string{"SHELL": "/usr/bin/fish"}, "fish"},
+		{map[string]string{"SHELL": "/bin/zsh"}, "zsh"},
+		{map[string]string{"SHELL": "/bin/bash"}, "bash"},
+		{map[string]string{"SHELL": "/bin/sh"}, "bash"},
+		{map[string]string{"SHELL": "/usr/bin/tcsh"}, ""},
+		{map[string]string{"SHELL": ""}, ""},
+		{map[string]string{"SHELL": "", "ZSH_VERSION": "5.9"}, "zsh"},
+		{map[string]string{"SHELL": "", "BASH_VERSION": "5.2"}, "bash"},
+		{map[string]string{}, ""},
+	}
+	for _, tc := range cases {
+		getenv := func(k string) string { return tc.env[k] }
+		if got := DetectShell(getenv); got != tc.want {
+			t.Errorf("DetectShell(%v) = %q, want %q", tc.env, got, tc.want)
+		}
+	}
+}
+
+func TestConfigPathAndSetupCommand(t *testing.T) {
+	cases := []struct {
+		shell, config, setup string
+	}{
+		{"bash", "~/.bashrc", `echo 'eval "$(incantations init bash)"' >> ~/.bashrc`},
+		{"zsh", "~/.zshrc", `echo 'eval "$(incantations init zsh)"' >> ~/.zshrc`},
+		{"fish", "~/.config/fish/config.fish", "echo 'incantations init fish | source' >> ~/.config/fish/config.fish"},
+	}
+	for _, tc := range cases {
+		if got := ConfigPath(tc.shell); got != tc.config {
+			t.Errorf("ConfigPath(%q) = %q, want %q", tc.shell, got, tc.config)
+		}
+		if got := SetupCommand(tc.shell); got != tc.setup {
+			t.Errorf("SetupCommand(%q) = %q, want %q", tc.shell, got, tc.setup)
+		}
+	}
+}
+
 func TestGoldenExact(t *testing.T) {
 	for _, shell := range []string{"bash", "zsh", "fish"} {
 		t.Run(shell, func(t *testing.T) {

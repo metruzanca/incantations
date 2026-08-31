@@ -20,8 +20,10 @@ type Entry struct {
 	Meta bool
 	Run  Run
 	// Help is the extended text shown by `incantations <name> --help`, from
-	// the Usage line onward. Empty falls back to a generic usage line.
-	Help string
+	// the Usage line onward. Empty falls back to a generic usage line. When
+	// HelpFunc is set it takes precedence, allowing dynamic help.
+	Help     string
+	HelpFunc func() string
 }
 
 // Registry holds the ordered set of commands for this binary.

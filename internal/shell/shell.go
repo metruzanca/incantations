@@ -6,6 +6,7 @@ package shell
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -39,6 +40,54 @@ func normalize(shell string) string {
 		s = s[i+1:]
 	}
 	return s
+}
+
+// DetectShell guesses the caller's interactive shell from the SHELL env var
+// (or shell-specific version variables), returning "bash", "zsh", "fish", or
+// "" when it cannot tell. The env lookup is injected so tests stay hermetic.
+func DetectShell(env func(string) string) string {
+	base := filepath.Base(env("SHELL"))
+	switch {
+	case strings.Contains(base, "zsh"):
+		return "zsh"
+	case strings.Contains(base, "fish"):
+		return "fish"
+	case strings.Contains(base, "bash"), base == "sh":
+		return "bash"
+	}
+	switch {
+	case env("ZSH_VERSION") != "":
+		return "zsh"
+	case env("BASH_VERSION") != "":
+		return "bash"
+	}
+	return ""
+}
+
+// ConfigPath returns the shell configuration file (as a display path).
+func ConfigPath(shell string) string {
+	switch shell {
+	case "zsh":
+		return "~/.zshrc"
+	case "fish":
+		return "~/.config/fish/config.fish"
+	default:
+		return "~/.bashrc"
+	}
+}
+
+// SetupCommand returns a copy-paste command that appends the integration line
+// to the shell's config file, e.g.
+// echo 'eval "$(incantations init bash)"' >> ~/.bashrc
+func SetupCommand(shell string) string {
+	switch shell {
+	case "zsh":
+		return `echo 'eval "$(incantations init zsh)"' >> ~/.zshrc`
+	case "fish":
+		return "echo 'incantations init fish | source' >> ~/.config/fish/config.fish"
+	default:
+		return `echo 'eval "$(incantations init bash)"' >> ~/.bashrc`
+	}
 }
 
 // shIntegration covers bash and zsh, whose function syntax is identical.

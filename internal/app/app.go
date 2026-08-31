@@ -6,6 +6,7 @@ package app
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/metruzanca/incantations/internal/command"
@@ -109,6 +110,9 @@ func wantsHelp(args []string) bool {
 // commandHelp prints extended help for one command.
 func (a *App) commandHelp(w io.Writer, e command.Entry) {
 	help := e.Help
+	if e.HelpFunc != nil {
+		help = e.HelpFunc()
+	}
 	if help == "" {
 		help = "Usage:\n  incantations " + e.Name
 	}
@@ -120,21 +124,13 @@ func initSpec(reg *command.Registry) command.Entry {
 		Name:    "init",
 		Summary: "print shell integration code for your shell",
 		Meta:    true,
-		Help: `Usage:
-  incantations init <bash|zsh|fish>
-  eval "$(incantations init bash)"
-
-Prints shell functions so plain "ram", "cpu", and "disk" commands work in
-your shell. Add a line like this to your shell's configuration file:
-
-  eval "$(incantations init bash)"   # ~/.bashrc or ~/.zshrc
-  incantations init fish | source    # ~/.config/fish/config.fish
-
-Re-running prints the same output, so it is safe to eval again, and new
-utilities are picked up automatically.`,
+		HelpFunc: func() string {
+			return initSetupText()
+		},
 		Run: func(args []string, stdout io.Writer) error {
-			if len(args) != 1 {
-				return fmt.Errorf("usage: incantations init <%s>", strings.Join(shell.Supported(), "|"))
+			if len(args) == 0 {
+				_, err := io.WriteString(stdout, "No shell specified.\n\n"+initSetupText())
+				return err
 			}
 			names := make([]string, 0, len(reg.List()))
 			for _, e := range reg.List() {
@@ -150,4 +146,27 @@ utilities are picked up automatically.`,
 			return err
 		},
 	}
+}
+
+// initSetupText builds the copy-paste setup screen for the caller's shell.
+func initSetupText() string {
+	detected := shell.DetectShell(os.Getenv)
+	var b strings.Builder
+	b.WriteString("Usage:\n")
+	b.WriteString("  incantations init <bash|zsh|fish>\n")
+	b.WriteString(`  eval "$(incantations init bash)"`)
+	b.WriteString("\n\n")
+	switch detected {
+	case "bash", "zsh", "fish":
+		fmt.Fprintf(&b, "Your shell looks like %s. Copy-paste this to install it:\n\n", detected)
+		fmt.Fprintf(&b, "  %s\n\n", shell.SetupCommand(detected))
+		fmt.Fprintf(&b, "That appends one line to %s so every new %s session gets the\nutilities. Re-running it is harmless.\n", shell.ConfigPath(detected), detected)
+	default:
+		b.WriteString("Couldn't tell which shell you use. Run one of these to install:\n\n")
+		for _, s := range shell.Supported() {
+			fmt.Fprintf(&b, "  %s\n", shell.SetupCommand(s))
+		}
+		b.WriteString("\nEach appends the integration line to that shell's config file.\n")
+	}
+	return b.String()
 }

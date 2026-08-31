@@ -30,7 +30,9 @@ greenscreen.
 - `internal/shell` — `Generate(shell, commands)` is pure and deterministic.
   bash/zsh share one template; fish differs (`$argv`). Golden files live in
   `testdata/`; regenerate with `-update`. `init` accepts normalized names
-  (`/bin/zsh`, `zsh`, `ZSH` → `zsh`).
+  (`/bin/zsh`, `zsh`, `ZSH` → `zsh`); its no-arg and `--help` screens detect
+  the caller's shell via `$SHELL` and suggest a copy-paste setup line
+  (`DetectShell`/`SetupCommand`).
 - `internal/logutil`, `internal/units`, `internal/ui` — shared plumbing. `units`
   uses decimal GB/MB (laymen units); `ui` renders charmbracelet tables and
   progress bars and is always plain in tests (goldens stay escape-free). Enable
