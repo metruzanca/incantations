@@ -11,7 +11,7 @@ type `ram`, `cpu`, or `disk`.
 | --- | --- |
 | `ram` | Total, used, and available memory, plus the top memory hogs |
 | `cpu` | CPU utilization, load average, and the top CPU hogs |
-| `disk` | Disk usage for real filesystems, fullest first |
+| `disk` | Disk usage for real filesystems with a usage bar; `-a` shows small partitions |
 
 Every command prints plain, human-readable output. No flags to memorize.
 
@@ -85,10 +85,12 @@ Percentages are of the whole CPU (all cores combined), not per core.
 ```
 $ disk
 Disk usage
- FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USED %  MOUNTED ON 
-  /dev/nvme0n1p2  ext4  1.7T  376G       1.3T     24%  /           
- /dev/nvme0n1p1  vfat  1022M  240M       783M     24%  /boot        
+ FILESYSTEM      TYPE  SIZE  USED  AVAILABLE                                    USAGE  MOUNTED ON 
+ /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%                         /          
 ```
+
+Small filesystems (like a sub-1GB `/boot`) are hidden by default to cut noise.
+Show everything with `disk -a` (or `--all`).
 
 ## Troubleshooting
 

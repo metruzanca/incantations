@@ -41,21 +41,65 @@ var hiddenTypes = map[string]bool{
 	"sysfs": true, "tmpfs": true, "tracefs": true,
 }
 
+// minVisibleSize is the smallest filesystem shown by default, matching df -h
+// units (1 GiB). Small partitions such as /boot stay hidden unless -a is used.
+const minVisibleSize = 1 << 30
+
+// sizeValue parses a df -h size string into its numeric value on the same
+// scale (K/M/G/T are powers of 1024, matching GNU df's -h output).
+func sizeValue(s string) float64 {
+	if s == "" {
+		return 0
+	}
+	mult := 1.0
+	num := s
+	if last := s[len(s)-1]; strings.ContainsAny(string(last), "KMGTP") {
+		num = s[:len(s)-1]
+		switch last {
+		case 'K':
+			mult = 1 << 10
+		case 'M':
+			mult = 1 << 20
+		case 'G':
+			mult = 1 << 30
+		case 'T':
+			mult = 1 << 40
+		case 'P':
+			mult = 1 << 50
+		}
+	}
+	v, err := strconv.ParseFloat(num, 64)
+	if err != nil {
+		return 0
+	}
+	return v * mult
+}
+
 // Sample executes df and returns the report. Platform-specific; defined in
 // platform files. Not declared here because the implementation lives solely in
 // build-tagged files.
 
-// Spec registers the disk command.
+// Spec registers the disk command. -a and --all show small filesystems that
+// would otherwise be hidden.
 func Spec() command.Entry {
 	return command.Entry{
 		Name:    "disk",
-		Summary: "show disk usage for real filesystems",
+		Summary: "show disk usage for real filesystems (use -a to show all)",
 		Run: func(args []string, stdout io.Writer) error {
+			showAll := false
+			for _, a := range args {
+				switch a {
+				case "-a", "--all":
+					showAll = true
+				default:
+					return fmt.Errorf("usage: incantations disk [-a|--all]")
+				}
+			}
 			rep, err := Sample()
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep))
+			_, err = io.WriteString(stdout, Render(rep, showAll))
 			return err
 		},
 	}
@@ -91,13 +135,19 @@ func parseDf(r io.Reader) ([]Row, error) {
 	return rows, sc.Err()
 }
 
-// Render formats the report for humans, most full first.
-func Render(r *Report) string {
+// Render formats the report for humans, most full first. Small filesystems
+// are hidden unless showAll is set.
+func Render(r *Report, showAll bool) string {
 	rows := append([]Row(nil), r.Rows...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].UsePct > rows[j].UsePct })
 	var out [][]string
+	var hidden int
 	for _, row := range rows {
 		if hiddenTypes[row.Type] {
+			continue
+		}
+		if !showAll && sizeValue(row.Size) < minVisibleSize {
+			hidden++
 			continue
 		}
 		out = append(out, []string{
@@ -106,17 +156,26 @@ func Render(r *Report) string {
 			row.Size,
 			row.Used,
 			row.Avail,
-			fmt.Sprintf("%.0f%%", row.UsePct),
+			usageCell(row.UsePct),
 			row.Mount,
 		})
 	}
 	var b strings.Builder
 	b.WriteString("Disk usage\n")
 	b.WriteString(ui.NewTable(
-		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USED %", "MOUNTED ON"},
+		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USAGE", "MOUNTED ON"},
 		[]bool{false, false, true, true, true, true, false},
 		out,
 	))
-	b.WriteString("\n")
+	if hidden > 0 {
+		b.WriteString("\nSome small filesystems are hidden; use incantations disk -a to show them.\n")
+	} else {
+		b.WriteString("\n")
+	}
 	return b.String()
+}
+
+// usageCell renders a progress bar plus the numeric usage for one filesystem.
+func usageCell(pct float64) string {
+	return ui.ProgressBar(pct/100, 12) + " " + fmt.Sprintf("%.0f%%", pct)
 }

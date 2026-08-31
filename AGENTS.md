@@ -67,7 +67,9 @@ functions from the registry automatically.
   The `/proc/self/exe` argv[0] linker trick is treated as no name.
 - `disk` shells out to `df -hT` on any non-Windows platform; `parseDf` is the
   pure, testable core. Virtual filesystems are filtered via `hiddenTypes`
-  (tmpfs/overlay/proc/etc.).
+  (tmpfs/overlay/proc/etc.), and filesystems smaller than 1 GiB are hidden
+  unless the `-a`/`--all` flag is passed (see `sizeValue`). Renders one
+  progress bar per row.
 - Non-Linux `ram`/`cpu` use `*_unsupported.go` stubs. To support a new OS add
   a build-tagged `Sample` — keep the render/parse core untouched.
 - Hardcoded assumptions, kept intentionally simple (call them out if they

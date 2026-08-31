@@ -71,12 +71,20 @@ func TestParseDfSkipsHeaderAndBlank(t *testing.T) {
 
 func TestRender(t *testing.T) {
 	// Parser output feeds the renderer; the render hides virtual filesystems
-	// and sorts by fullness.
+	// and small partitions, and sorts by fullness.
 	rows, err := parseDf(fixture(t, "df.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	golden(t, "disk_render.golden", Render(&Report{Rows: rows}))
+	golden(t, "disk_render.golden", Render(&Report{Rows: rows}, false))
+}
+
+func TestRenderAll(t *testing.T) {
+	rows, err := parseDf(fixture(t, "df.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden(t, "disk_render_all.golden", Render(&Report{Rows: rows}, true))
 }
 
 func TestRenderDeterministic(t *testing.T) {
@@ -84,8 +92,47 @@ func TestRenderDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a, b := Render(&Report{Rows: rows}), Render(&Report{Rows: rows}); a != b {
+	if a, b := Render(&Report{Rows: rows}, false), Render(&Report{Rows: rows}, false); a != b {
 		t.Error("Render must be deterministic")
+	}
+}
+
+func TestSizeValue(t *testing.T) {
+	cases := map[string]float64{
+		"1022M": 1022 * 1 << 20,
+		"1.7T":  1.7 * (1 << 40),
+		"4.0T":  4.0 * (1 << 40),
+		"500G":  500 * 1 << 30,
+		"128K":  128 * 1 << 10,
+		"1":     1,
+		"":      0,
+		"junk":  0,
+	}
+	for in, want := range cases {
+		if got := sizeValue(in); got != want {
+			t.Errorf("sizeValue(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestSmallFilesystemsHiddenUnlessAll(t *testing.T) {
+	rows, err := parseDf(fixture(t, "df.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultOut := Render(&Report{Rows: rows}, false)
+	if strings.Contains(defaultOut, "/boot") {
+		t.Error("/boot (1022M) should be hidden by default")
+	}
+	if !strings.Contains(defaultOut, "hidden") && !strings.Contains(defaultOut, "-a") {
+		t.Error("expected a hint when small filesystems are hidden")
+	}
+	allOut := Render(&Report{Rows: rows}, true)
+	if !strings.Contains(allOut, "/boot") {
+		t.Error("-a should show /boot")
+	}
+	if strings.Contains(allOut, "hidden") {
+		t.Error("-a output should not claim small filesystems are hidden")
 	}
 }
 
