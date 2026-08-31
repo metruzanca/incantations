@@ -180,7 +180,7 @@ func ParseProcStat(r io.Reader) (ProcTick, error) {
 	if err != nil {
 		return ProcTick{}, err
 	}
-	name := s[open+1 : close]
+	name := strings.TrimSpace(s[open+1 : close])
 	rest := strings.Fields(s[close+1:])
 	if len(rest) < 22 {
 		return ProcTick{}, fmt.Errorf("too few fields in proc stat")
@@ -237,7 +237,7 @@ func Render(r *Report) string {
 		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
 			rows = append(rows, []string{
-				p.Name,
+				strings.TrimSpace(p.Name),
 				strconv.Itoa(p.PID),
 				fmt.Sprintf("%.1f%%", p.CPU),
 				units.HumanMemory(p.RSSKiB),

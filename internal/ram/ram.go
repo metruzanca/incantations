@@ -68,7 +68,7 @@ func Render(r *Report) string {
 		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
 			rows = append(rows, []string{
-				p.Name,
+				strings.TrimSpace(p.Name),
 				units.HumanMemory(p.RSSKiB),
 				strconv.Itoa(p.Count),
 				fmt.Sprintf("%.1f%%", units.Pct(p.RSSKiB, m.TotalKiB)),
