@@ -58,9 +58,10 @@ Available     14.5 GiB
 Buffers/cache 13.3 GiB
 
 Top processes by memory
-  PID      RSS         %VMEM  COMMAND
-  26634    1.4 GiB      4.3%  .opencode-wrapp
-  499524   924.1 MiB    2.9%  .opencode-wrapp
+RSS        %VMEM   COUNT  COMMAND
+7.8 GiB     24.9%  37     brave
+6.2 GiB     19.9%  8      opencode
+2.1 GiB      6.6%  12     steamwebhelper
 ```
 
 ```

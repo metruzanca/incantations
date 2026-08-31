@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/metruzanca/incantations/internal/command"
 	"github.com/metruzanca/incantations/internal/units"
@@ -19,11 +20,12 @@ type MemInfo struct {
 	UsedKiB      uint64
 }
 
-// Process is a single process with its resident memory footprint.
+// Process is a group of processes sharing a command name, with their combined
+// resident memory footprint.
 type Process struct {
-	PID    int
 	Name   string
 	RSSKiB uint64
+	Count  int
 }
 
 // Report bundles the full result of a capture.
@@ -32,7 +34,7 @@ type Report struct {
 	Procs []Process
 }
 
-// Limit is the number of top processes shown.
+// Limit is the number of top process groups shown.
 const Limit = 10
 
 // Spec registers the ram command.
@@ -62,10 +64,12 @@ func Render(r *Report) string {
 	fmt.Fprintf(&b, "%-13s %-8s\n", "Buffers/cache", units.HumanKiB(m.BuffersKiB+m.CachedKiB))
 	if len(r.Procs) > 0 {
 		b.WriteString("\nTop processes by memory\n")
-		fmt.Fprintf(&b, "  %-8s %-9s %7s  %s\n", "PID", "RSS", "%VMEM", "COMMAND")
+		w := tabwriter.NewWriter(&b, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(w, "RSS\t%VMEM\tCOUNT\tCOMMAND")
 		for _, p := range r.Procs {
-			fmt.Fprintf(&b, "  %-8d %-9s %6.1f%%  %s\n", p.PID, units.HumanKiB(p.RSSKiB), units.Pct(p.RSSKiB, m.TotalKiB), p.Name)
+			fmt.Fprintf(w, "%s\t%5.1f%%\t%d\t%s\n", units.HumanKiB(p.RSSKiB), units.Pct(p.RSSKiB, m.TotalKiB), p.Count, p.Name)
 		}
+		w.Flush()
 	}
 	return b.String()
 }

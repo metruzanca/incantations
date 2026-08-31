@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -68,8 +69,9 @@ func parseVmRSS(r io.Reader) (uint64, error) {
 	return 0, sc.Err()
 }
 
-// readProc reads one process's resident memory. procProbe receives a
-// status-like reader and a comm reader; it is a variable so tests can fake it.
+// readProc reads one process's resident memory and display name. The comm
+// field is truncated to 15 characters by the kernel, so the full argv[0] from
+// cmdline is preferred when available.
 func readProc(pid int) (Process, bool) {
 	base := fmt.Sprintf("%s/%d", procRoot, pid)
 	status, err := os.Open(base + "/status")
@@ -81,11 +83,33 @@ func readProc(pid int) (Process, bool) {
 	if err != nil || rss == 0 {
 		return Process{}, false
 	}
-	name, err := os.ReadFile(base + "/comm")
+	comm, err := os.ReadFile(base + "/comm")
 	if err != nil {
 		return Process{}, false
 	}
-	return Process{PID: pid, Name: strings.TrimSpace(string(name)), RSSKiB: rss}, true
+	return Process{Name: procName(pid, strings.TrimSpace(string(comm))), RSSKiB: rss}, true
+}
+
+// procName returns the best human-readable name for a process: the basename of
+// its argv[0] when cmdline is populated, falling back to comm for kernel and
+// other threads with an empty command line. Chromium-family processes put
+// their whole flag string in argv[0], so only the first token is used, and the
+// "/proc/self/exe" linker trick is treated as no name at all.
+func procName(pid int, comm string) string {
+	data, err := os.ReadFile(fmt.Sprintf("%s/%d/cmdline", procRoot, pid))
+	if err != nil {
+		return comm
+	}
+	argv0 := strings.SplitN(string(data), "\x00", 2)[0]
+	token := ""
+	if fields := strings.Fields(argv0); len(fields) > 0 {
+		token = fields[0]
+	}
+	name := filepath.Base(strings.TrimPrefix(token, "-"))
+	if name != "" && name != "." && name != "exe" {
+		return name
+	}
+	return comm
 }
 
 // readProcs scans /proc for resident memory of every process.
@@ -125,14 +149,35 @@ func Sample() (*Report, error) {
 	if err != nil {
 		return nil, err
 	}
-	sortProcsDesc(procs)
+	procs = aggregate(procs)
 	if len(procs) > Limit {
 		procs = procs[:Limit]
 	}
 	return &Report{Mem: m, Procs: procs}, nil
 }
 
-// sortProcsDesc orders processes by resident memory, largest first.
+// sortProcsDesc orders process groups by resident memory, largest first.
 func sortProcsDesc(procs []Process) {
 	sort.Slice(procs, func(i, j int) bool { return procs[i].RSSKiB > procs[j].RSSKiB })
+}
+
+// aggregate groups same-named processes, summing RSS and counting members,
+// ordered by total resident memory descending.
+func aggregate(procs []Process) []Process {
+	byName := make(map[string]*Process, len(procs))
+	for _, p := range procs {
+		g := byName[p.Name]
+		if g == nil {
+			g = &Process{Name: p.Name}
+			byName[p.Name] = g
+		}
+		g.RSSKiB += p.RSSKiB
+		g.Count++
+	}
+	out := make([]Process, 0, len(byName))
+	for _, g := range byName {
+		out = append(out, *g)
+	}
+	sortProcsDesc(out)
+	return out
 }

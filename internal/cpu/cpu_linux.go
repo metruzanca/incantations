@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -57,9 +58,33 @@ func readProcs() (map[int]ProcTick, error) {
 		if err != nil {
 			continue
 		}
+		// comm is truncated to 15 chars by the kernel; prefer the full argv[0].
+		tick.Name = procName(pid, tick.Name)
 		procs[pid] = tick
 	}
 	return procs, nil
+}
+
+// procName returns the basename of a process's argv[0] when cmdline is
+// populated, falling back to its comm (kernel and other threads with no
+// command line). Only the first token of argv[0] is used, since Chromium-family
+// processes stuff their whole flag string in there, and the "/proc/self/exe"
+// linker trick is treated as no name at all.
+func procName(pid int, comm string) string {
+	data, err := os.ReadFile(filepath.Join(procRoot, strconv.Itoa(pid), "cmdline"))
+	if err != nil {
+		return comm
+	}
+	argv0 := strings.SplitN(string(data), "\x00", 2)[0]
+	token := ""
+	if fields := strings.Fields(argv0); len(fields) > 0 {
+		token = fields[0]
+	}
+	name := filepath.Base(strings.TrimPrefix(token, "-"))
+	if name != "" && name != "." && name != "exe" {
+		return name
+	}
+	return comm
 }
 
 // Sample measures CPU utilization over a short window on Linux.

@@ -57,8 +57,11 @@ functions from the registry automatically.
 ## Platform contract
 
 - Linux reads `/proc` directly (no cgo, no external deps): `meminfo`,
-  `/proc/<pid>/status` + `comm`, `/proc/stat`, `/proc/<pid>/stat`,
-  `/proc/loadavg`.
+  `/proc/<pid>/status`, `/proc/stat`, `/proc/<pid>/stat`, `/proc/loadavg`.
+- Process display names come from the first token of `/proc/<pid>/cmdline`
+  argv[0] (falling back to `comm`, which the kernel truncates to 15 chars).
+  `ram` groups same-named processes (summed RSS + count); `cpu` lists per PID.
+  The `/proc/self/exe` argv[0] linker trick is treated as no name.
 - `disk` shells out to `df -hT` on any non-Windows platform; `parseDf` is the
   pure, testable core. Virtual filesystems are filtered via `hiddenTypes`
   (tmpfs/overlay/proc/etc.).

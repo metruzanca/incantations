@@ -103,8 +103,8 @@ func TestRender(t *testing.T) {
 			UsedKiB:      32746652 - 14673136,
 		},
 		Procs: []Process{
-			{PID: 26634, Name: "chrome", RSSKiB: 1425408},
-			{PID: 7, Name: "kthreadd", RSSKiB: 2048},
+			{Name: "chrome", RSSKiB: 1425408, Count: 1},
+			{Name: "kthreadd", RSSKiB: 2048, Count: 1},
 		},
 	}
 	golden(t, "ram_render.golden", Render(rep))
@@ -119,13 +119,37 @@ func TestRenderDeterministic(t *testing.T) {
 
 func TestProcsSortedDescending(t *testing.T) {
 	procs := []Process{
-		{PID: 1, Name: "low", RSSKiB: 100},
-		{PID: 2, Name: "high", RSSKiB: 900},
-		{PID: 3, Name: "mid", RSSKiB: 500},
+		{Name: "low", RSSKiB: 100},
+		{Name: "high", RSSKiB: 900},
+		{Name: "mid", RSSKiB: 500},
 	}
 	sortProcsDesc(procs)
 	got := []uint64{procs[0].RSSKiB, procs[1].RSSKiB, procs[2].RSSKiB}
 	if !reflect.DeepEqual(got, []uint64{900, 500, 100}) {
 		t.Errorf("expected descending RSS, got %v", got)
+	}
+}
+
+func TestAggregate(t *testing.T) {
+	procs := []Process{
+		{Name: "opencode", RSSKiB: 900},
+		{Name: "brave", RSSKiB: 400},
+		{Name: "opencode", RSSKiB: 300},
+		{Name: "opencode", RSSKiB: 200},
+		{Name: "chrome", RSSKiB: 700},
+	}
+	got := aggregate(procs)
+	if len(got) != 3 {
+		t.Fatalf("got %d groups, want 3", len(got))
+	}
+	// opencode totals 1400 KiB across 3, chrome 700, brave 400.
+	want := []struct {
+		rss   uint64
+		count int
+	}{{1400, 3}, {700, 1}, {400, 1}}
+	for i, w := range want {
+		if got[i].RSSKiB != w.rss || got[i].Count != w.count {
+			t.Errorf("group %d = %s %dKiB x%d, want %dKiB x%d", i, got[i].Name, got[i].RSSKiB, got[i].Count, w.rss, w.count)
+		}
 	}
 }
