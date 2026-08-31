@@ -37,6 +37,15 @@ func TestProgressBarEmptyAndFull(t *testing.T) {
 	}
 }
 
+func TestProgressBarNeverEmitsEscapes(t *testing.T) {
+	if strings.Contains(ProgressBar(0.5, 10), "\x1b") {
+		t.Error("ProgressBar inside table cells must never contain ANSI escapes")
+	}
+	if strings.Contains(Bar(0.5, 10), "\x1b") {
+		t.Error("plain Bar must not contain escapes when unstyled")
+	}
+}
+
 func TestNewTableMultibyteWidths(t *testing.T) {
 	// Block characters are 3 bytes but one terminal cell; a byte-based width
 	// would over-inflate the column and wrap the row.

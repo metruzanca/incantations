@@ -65,7 +65,7 @@ func Render(r *Report) string {
 	m := r.Mem
 	usedPct := units.Pct(m.UsedKiB, m.TotalKiB)
 	b.WriteString("RAM\n")
-	fmt.Fprintf(&b, "%s %4.0f%% used\n", ui.ProgressBar(usedPct/100, 20), usedPct)
+	fmt.Fprintf(&b, "%s %4.0f%% used\n", ui.Bar(usedPct/100, 20), usedPct)
 	fmt.Fprintf(&b, "%-13s %s\n", "Total", units.HumanMemory(m.TotalKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Used", units.HumanMemory(m.UsedKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Available", units.HumanMemory(m.AvailableKiB))

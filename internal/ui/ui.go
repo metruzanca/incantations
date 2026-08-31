@@ -25,18 +25,19 @@ func NewTable(headers []string, right []bool, rows [][]string) string {
 		return ""
 	}
 	widths := make([]int, len(headers))
+	w := func(s string) int { return ansi.StringWidth(ansi.Strip(s)) }
 	for i, h := range headers {
-		widths[i] = ansi.StringWidth(h)
+		widths[i] = w(h)
 	}
 	for _, r := range rows {
 		for i, c := range r {
-			if l := ansi.StringWidth(c); l > widths[i] {
+			if l := w(c); l > widths[i] {
 				widths[i] = l
 			}
 		}
 	}
-	padRight := func(s string, w int) string {
-		return strings.Repeat(" ", w-ansi.StringWidth(s)) + s
+	padRight := func(s string, width int) string {
+		return strings.Repeat(" ", width-w(s)) + s
 	}
 	cols := make([]table.Column, len(headers))
 	for i := range headers {
@@ -78,17 +79,24 @@ func NewTable(headers []string, right []bool, rows [][]string) string {
 	return strings.TrimSuffix(t.View(), "\n")
 }
 
-// ProgressBar renders a filled progress bar of the given cell width for a
-// ratio in [0,1]. The percentage readout is left to the caller.
+// ProgressBar renders a plain, deterministic progress bar of the given cell
+// width for a ratio in [0,1]. The percentage readout is left to the caller.
+// It never emits ANSI escapes, so it is safe inside table cells.
 func ProgressBar(ratio float64, width int) string {
 	m := progress.New(progress.WithWidth(width))
 	m.ShowPercentage = false
-	if Styled {
-		m.FullColor = "#7D56F4"
-		m.EmptyColor = "#3a3a3a"
-	} else {
-		m.FullColor = ""
-		m.EmptyColor = ""
-	}
+	m.FullColor = ""
+	m.EmptyColor = ""
 	return m.ViewAs(ratio)
+}
+
+// Bar renders a progress bar like ProgressBar, but dyed in the accent color
+// on terminals. It wraps the whole bar in a single escape pair, so it belongs
+// on standalone lines rather than inside tables.
+func Bar(ratio float64, width int) string {
+	s := ProgressBar(ratio, width)
+	if !Styled {
+		return s
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("99")).Render(s)
 }
