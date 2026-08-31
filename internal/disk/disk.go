@@ -105,7 +105,7 @@ Filesystems under 1 GB (such as /boot) are hidden by default; pass -a or
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep, showAll))
+			_, err = io.WriteString(stdout, Render(rep, showAll, false))
 			return err
 		},
 	}
@@ -142,8 +142,9 @@ func parseDf(r io.Reader) ([]Row, error) {
 }
 
 // Render formats the report for humans, most full first. Small filesystems
-// are hidden unless showAll is set.
-func Render(r *Report, showAll bool) string {
+// are hidden unless showAll is set. The "Disk usage" heading is only emitted
+// when sectioned (used by sys).
+func Render(r *Report, showAll, sectioned bool) string {
 	rows := append([]Row(nil), r.Rows...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].UsePct > rows[j].UsePct })
 	var out [][]string
@@ -165,7 +166,9 @@ func Render(r *Report, showAll bool) string {
 		})
 	}
 	var b strings.Builder
-	b.WriteString("Disk usage\n")
+	if sectioned {
+		b.WriteString("Disk usage\n")
+	}
 	b.WriteString(ui.NewTable(
 		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USAGE", "MOUNTED ON"},
 		[]bool{false, false, true, true, true, false, false},

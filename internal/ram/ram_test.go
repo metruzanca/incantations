@@ -107,12 +107,12 @@ func TestRender(t *testing.T) {
 			{Name: "kthreadd", RSSKiB: 2048, Count: 1},
 		},
 	}
-	golden(t, "ram_render.golden", Render(rep))
+	golden(t, "ram_render.golden", Render(rep, false))
 }
 
 func TestRenderDeterministic(t *testing.T) {
 	rep := &Report{Mem: MemInfo{TotalKiB: 1024, AvailableKiB: 512, UsedKiB: 512}}
-	if a, b := Render(rep), Render(rep); a != b {
+	if a, b := Render(rep, false), Render(rep, false); a != b {
 		t.Error("Render must be deterministic")
 	}
 }

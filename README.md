@@ -1,6 +1,6 @@
 # Incantations
 
-Small system utilities for people who don't remember the incantation.
+Small system utilities for people who don't remember the linux incantations.
 
 Instead of recalling `ps aux | sort -rk 4` or `df -h | grep -v tmpfs`,
 type `ram`, `cpu`, or `disk`.
@@ -12,10 +12,6 @@ type `ram`, `cpu`, or `disk`.
 | `ram` | Total, used, and available memory, plus the top memory hogs |
 | `cpu` | CPU utilization, load average, and the top CPU hogs |
 | `disk` | Disk usage for real filesystems with a usage bar; `-a` shows small partitions |
-| `sys` | All three at once: RAM, CPU, and disk |
-
-Every command prints plain, human-readable output. No flags to memorize. For
-details on any command, run `incantations <command> --help`.
 
 ## Install
 
@@ -53,14 +49,12 @@ won't ever require changes to your shell config.
 
 ```
 $ ram
-RAM
 ██████████░░░░░░░░░░  51% used
 Total         33.5 GB
 Used          16.8 GB
 Available     16.7 GB
 Cache         13.2 GB
 
-Top processes by memory
  COMMAND         MEMORY  PROCESSES  % OF MEMORY 
   brave           9.0 GB         37        27.1%  
  opencode        6.6 GB          8        20.0%   
@@ -69,13 +63,11 @@ Top processes by memory
 
 ```
 $ cpu
-CPU usage (last 300ms)
 Programs        9.3%
 System          2.9%
 Idle           87.8%
 Load (1m 5m 15m) 2.01 1.83 1.77
 
-Top processes by CPU
  COMMAND            PID  % OF CPU  MEMORY 
   opencode            533343      4.5%  900 MB  
  gpu-screen-recorder  318925      1.7%  448 MB  
@@ -84,49 +76,5 @@ Top processes by CPU
 
 Percentages are of the whole CPU (all cores combined), not per core.
 
-```
-
-$ sys
-RAM
-██████████░░░░░░░░░░  53% used
-Total         33.5 GB
-Used          17.8 GB
-Available     15.7 GB
-Cache         13.2 GB
-
-Top processes by memory
- COMMAND         MEMORY  PROCESSES  % OF MEMORY 
-  brave           9.0 GB         37        27.1%  
-
-CPU usage (last 300ms)
-Programs       12.3%
-System          3.0%
-Idle           84.7%
-...
-
-Disk usage
- FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USAGE             MOUNTED ON
- /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%  /
-```
-
-```
-$ disk
-Disk usage
- FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USAGE             MOUNTED ON
- /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%  /
-```
-
 Small filesystems (like a sub-1GB `/boot`) are hidden by default to cut noise.
 Show everything with `disk -a` (or `--all`).
-
-## Troubleshooting
-
-- `incantations: command not found` — install the binary, then re-run the
-  `eval` line for your shell.
-- Output says `not yet supported on ...` — that command isn't implemented on
-  your platform yet.
-
-## Adding a command
-
-Mirror an existing one: put a small package under `internal/`, add its `Spec`
-to `internal/app`, rebuild. `init` picks it up automatically.

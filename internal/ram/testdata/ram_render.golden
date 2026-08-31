@@ -1,11 +1,9 @@
-RAM
 ███████████░░░░░░░░░   55% used
 Total         33.5 GB
 Used          18.5 GB
 Available     15.0 GB
 Cache         13.8 GB
 
-Top processes by memory
  COMMAND   MEMORY  PROCESSES  % OF MEMORY 
  chrome    1.5 GB          1         4.4% 
  kthreadd  2.1 MB          1         0.0% 

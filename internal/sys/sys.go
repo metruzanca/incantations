@@ -59,14 +59,15 @@ func Sample() (*Report, error) {
 	return &Report{RAM: r, CPU: c, Disk: d}, nil
 }
 
-// Render concatenates the three sub-reports, each ending in a blank line.
+// Render concatenates the three sub-reports (with their section headings),
+// each ending in a blank line.
 func Render(r *Report) string {
 	var b strings.Builder
-	b.WriteString(strings.TrimRight(ram.Render(r.RAM), "\n"))
+	b.WriteString(strings.TrimRight(ram.Render(r.RAM, true), "\n"))
 	b.WriteString("\n\n")
-	b.WriteString(strings.TrimRight(cpu.Render(r.CPU), "\n"))
+	b.WriteString(strings.TrimRight(cpu.Render(r.CPU, true), "\n"))
 	b.WriteString("\n\n")
-	b.WriteString(strings.TrimRight(disk.Render(r.Disk, false), "\n"))
+	b.WriteString(strings.TrimRight(disk.Render(r.Disk, false, true), "\n"))
 	b.WriteString("\n")
 	return b.String()
 }

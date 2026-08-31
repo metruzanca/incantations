@@ -53,25 +53,32 @@ processes using the most memory. Processes are grouped by name.`,
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep))
+			_, err = io.WriteString(stdout, Render(rep, false))
 			return err
 		},
 	}
 }
 
-// Render formats a report for humans.
-func Render(r *Report) string {
+// Render formats a report for humans. Section headings ("RAM",
+// "Top processes by memory") are only emitted when sectioned, so sys can
+// label its combined output while individual invocations stay clean.
+func Render(r *Report, sectioned bool) string {
 	var b strings.Builder
 	m := r.Mem
 	usedPct := units.Pct(m.UsedKiB, m.TotalKiB)
-	b.WriteString("RAM\n")
+	if sectioned {
+		b.WriteString("RAM\n")
+	}
 	fmt.Fprintf(&b, "%s %4.0f%% used\n", ui.Bar(usedPct/100, 20), usedPct)
 	fmt.Fprintf(&b, "%-13s %s\n", "Total", units.HumanMemory(m.TotalKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Used", units.HumanMemory(m.UsedKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Available", units.HumanMemory(m.AvailableKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Cache", units.HumanMemory(m.BuffersKiB+m.CachedKiB))
 	if len(r.Procs) > 0 {
-		b.WriteString("\nTop processes by memory\n")
+		b.WriteString("\n")
+		if sectioned {
+			b.WriteString("Top processes by memory\n")
+		}
 		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
 			rows = append(rows, []string{

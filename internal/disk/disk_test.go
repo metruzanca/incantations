@@ -76,7 +76,7 @@ func TestRender(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	golden(t, "disk_render.golden", Render(&Report{Rows: rows}, false))
+	golden(t, "disk_render.golden", Render(&Report{Rows: rows}, false, false))
 }
 
 func TestRenderAll(t *testing.T) {
@@ -84,7 +84,7 @@ func TestRenderAll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	golden(t, "disk_render_all.golden", Render(&Report{Rows: rows}, true))
+	golden(t, "disk_render_all.golden", Render(&Report{Rows: rows}, true, false))
 }
 
 func TestRenderDeterministic(t *testing.T) {
@@ -92,7 +92,7 @@ func TestRenderDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a, b := Render(&Report{Rows: rows}, false), Render(&Report{Rows: rows}, false); a != b {
+	if a, b := Render(&Report{Rows: rows}, false, false), Render(&Report{Rows: rows}, false, false); a != b {
 		t.Error("Render must be deterministic")
 	}
 }
@@ -120,11 +120,11 @@ func TestSmallFilesystemsHiddenUnlessAll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaultOut := Render(&Report{Rows: rows}, false)
+	defaultOut := Render(&Report{Rows: rows}, false, false)
 	if strings.Contains(defaultOut, "/boot") {
 		t.Error("/boot (1022M) should be hidden by default")
 	}
-	allOut := Render(&Report{Rows: rows}, true)
+	allOut := Render(&Report{Rows: rows}, true, false)
 	if !strings.Contains(allOut, "/boot") {
 		t.Error("-a should show /boot")
 	}

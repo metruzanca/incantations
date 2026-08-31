@@ -1,4 +1,3 @@
-Disk usage
  FILESYSTEM        TYPE    SIZE  USED  AVAILABLE  USAGE             MOUNTED ON             
  nfs:/data/shared  nfs4    4.0T  3.2T       800G  ██████████░░ 81%  /mnt/shared            
  /dev/nvme0n1p2    ext4    1.7T  378G       1.3T  ███░░░░░░░░░ 24%  /                      

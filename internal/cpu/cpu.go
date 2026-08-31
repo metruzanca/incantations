@@ -222,22 +222,28 @@ CPU (all cores combined), not of a single core.`,
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep))
+			_, err = io.WriteString(stdout, Render(rep, false))
 			return err
 		},
 	}
 }
 
-// Render formats a report for humans, most CPU-heavy first.
-func Render(r *Report) string {
+// Render formats a report for humans, most CPU-heavy first. Section headings
+// are only emitted when sectioned (used by sys).
+func Render(r *Report, sectioned bool) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "CPU usage (last %dms)\n", r.Window.Milliseconds())
+	if sectioned {
+		fmt.Fprintf(&b, "CPU usage (last %dms)\n", r.Window.Milliseconds())
+	}
 	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Programs", r.User)
 	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "System", r.System)
 	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Idle", r.Idle)
 	fmt.Fprintf(&b, "%-12s %.2f %.2f %.2f\n", "Load (1m 5m 15m)", r.Load[0], r.Load[1], r.Load[2])
 	if len(r.Procs) > 0 {
-		b.WriteString("\nTop processes by CPU\n")
+		b.WriteString("\n")
+		if sectioned {
+			b.WriteString("Top processes by CPU\n")
+		}
 		rows := make([][]string, 0, len(r.Procs))
 		for _, p := range r.Procs {
 			rows = append(rows, []string{
