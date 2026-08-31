@@ -1,0 +1,10 @@
+CPU utilization (over 300ms)
+User:      25.0%
+System:     5.0%
+Idle:      70.0%
+Load average (1m 5m 15m): 1.50 0.75 0.50
+
+Top processes by CPU
+  PID   %CPU    RSS      COMMAND
+  4321   99.9%  1.4 GiB  web server (worker)
+  555     1.2%  2.0 MiB  kthreadd

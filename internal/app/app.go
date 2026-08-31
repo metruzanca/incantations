@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/metruzanca/incantations/internal/command"
+	"github.com/metruzanca/incantations/internal/cpu"
 	"github.com/metruzanca/incantations/internal/disk"
 	"github.com/metruzanca/incantations/internal/logutil"
 	"github.com/metruzanca/incantations/internal/ram"
@@ -34,6 +35,7 @@ type App struct {
 func New(stdout, stderr io.Writer, extra ...command.Entry) *App {
 	reg := command.New()
 	reg.Add(ram.Spec())
+	reg.Add(cpu.Spec())
 	reg.Add(disk.Spec())
 	for _, e := range extra {
 		reg.Add(e)
