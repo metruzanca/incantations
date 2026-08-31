@@ -8,7 +8,7 @@ project_name: incantations
 
 builds:
   - id: incantations
-    main: ./cmd/incantations
+    main: .
     binary: incantations
     env:
       - CGO_ENABLED=0

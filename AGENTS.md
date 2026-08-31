@@ -26,7 +26,9 @@ Check config drift with `goreleaser check`; snapshot builds with
 
 ## Layout
 
-- `cmd/incantations/main.go` — thin entrypoint. Logging init + `app.Run`.
+- `main.go` — thin entrypoint at the module root (so plain
+  `go install github.com/metruzanca/incantations@latest` works). Logging init +
+  `app.Run`.
 - `internal/app` — dispatch. Owns the `command.Registry`, help/version/errors,
   exit codes (0 ok, 1 runtime error, 2 usage error). `New` is variadic so
   tests inject synthetic entries. `Version` is overridable via
