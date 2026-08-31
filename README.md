@@ -21,29 +21,14 @@ go install github.com/metruzanca/incantations@latest
 
 ## Set up your shell
 
-Run this once per shell and drop it in your shell's config file so it's
-available in every new terminal.
+Run `incantations init` once, follow its advice, and you're done. It detects
+your shell and prints the exact line to add to your config file.
 
-Bash (`~/.bashrc`):
-
-```sh
-eval "$(incantations init bash)"
-```
-
-Zsh (`~/.zshrc`):
-
-```sh
-eval "$(incantations init zsh)"
-```
-
-Fish (`~/.config/fish/config.fish`):
-
-```fish
-incantations init fish | source
-```
-
-Now `ram`, `cpu`, and `disk` just work. Adding new commands to Incantations
-won't ever require changes to your shell config.
+That line defines a shell function for each utility, so you can type a plain
+`ram`, `cpu`, or `disk` instead of `incantations ram`. Everything stays one
+small binary behind a few functions rather than a cluttered pile of separately
+installed utilities, and adding or upgrading commands never touches your
+shell config again.
 
 ## Examples
 
