@@ -18,6 +18,12 @@ Commit rule: commit at meaningful points, only when `go build ./...`,
 `go vet ./...`, and the full test suite pass. This is a CLI; keep every commit
 greenscreen.
 
+Releases: pushing a `vX.Y.Z` tag runs GoReleaser (`.github/workflows/release.yml`
++ `.goreleaser.yaml`), which uploads cross-platform binaries and makes the tag
+servable to `go install github.com/metruzanca/incantations@latest`.
+Check config drift with `goreleaser check`; snapshot builds with
+`goreleaser build --snapshot`.
+
 ## Layout
 
 - `cmd/incantations/main.go` — thin entrypoint. Logging init + `app.Run`.

@@ -19,6 +19,9 @@ type `ram`, `cpu`, or `disk`.
 go install github.com/metruzanca/incantations@latest
 ```
 
+New versions are published as git tags, so `go install ...@latest` always
+picks up the newest release (or pin one with `@v0.x.y`).
+
 ## Set up your shell
 
 Run `incantations init` once, follow its advice, and you're done. It detects
