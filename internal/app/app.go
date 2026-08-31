@@ -14,6 +14,7 @@ import (
 	"github.com/metruzanca/incantations/internal/logutil"
 	"github.com/metruzanca/incantations/internal/ram"
 	"github.com/metruzanca/incantations/internal/shell"
+	"github.com/metruzanca/incantations/internal/sys"
 )
 
 // Version may be overridden at build time with
@@ -37,6 +38,7 @@ func New(stdout, stderr io.Writer, extra ...command.Entry) *App {
 	reg.Add(ram.Spec())
 	reg.Add(cpu.Spec())
 	reg.Add(disk.Spec())
+	reg.Add(sys.Spec())
 	for _, e := range extra {
 		reg.Add(e)
 	}

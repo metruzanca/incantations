@@ -15,7 +15,7 @@ func sampleUtilities() []command.Entry {
 	mk := func(name string) command.Entry {
 		return command.Entry{Name: name, Summary: "synthetic utility", Run: func(args []string, stdout io.Writer) error { return nil }}
 	}
-	return []command.Entry{mk("cpu"), mk("disk"), mk("ram")}
+	return []command.Entry{mk("cpu"), mk("disk"), mk("ram"), mk("sys")}
 }
 
 func run(t *testing.T, args ...string) (stdout, stderr string, code int) {
@@ -30,7 +30,7 @@ func TestNoArgsPrintsUsage(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d, want 0", code)
 	}
-	for _, want := range []string{"Usage:", "ram", "cpu", "disk", "init"} {
+	for _, want := range []string{"Usage:", "ram", "cpu", "disk", "init", "sys"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("usage missing %q", want)
 		}
@@ -134,7 +134,7 @@ func TestInitDeterministic(t *testing.T) {
 }
 
 func TestCommandHelp(t *testing.T) {
-	for _, name := range []string{"ram", "cpu", "disk"} {
+	for _, name := range []string{"ram", "cpu", "disk", "sys"} {
 		for _, flag := range []string{"--help", "-h"} {
 			out, errOut, code := run(t, name, flag)
 			if code != 0 {

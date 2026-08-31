@@ -59,6 +59,11 @@ To add a command: create `internal/<name>`, register its `Spec()` in
 `app.New`, add fixture/golden tests. No shell-config work: `init` regenerates
 functions from the registry automatically.
 
+`sys` is a composed command: it calls `ram.Sample()`, `cpu.Sample()`, and
+`disk.Sample()` and concatenates their rendered reports. Because every
+subsystem has a `Sample` defined for every platform, `sys` needs no build-tag
+files of its own.
+
 ## Platform contract
 
 - Linux reads `/proc` directly (no cgo, no external deps): `meminfo`,

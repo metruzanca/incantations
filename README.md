@@ -12,6 +12,7 @@ type `ram`, `cpu`, or `disk`.
 | `ram` | Total, used, and available memory, plus the top memory hogs |
 | `cpu` | CPU utilization, load average, and the top CPU hogs |
 | `disk` | Disk usage for real filesystems with a usage bar; `-a` shows small partitions |
+| `sys` | All three at once: RAM, CPU, and disk |
 
 Every command prints plain, human-readable output. No flags to memorize. For
 details on any command, run `incantations <command> --help`.
@@ -84,10 +85,35 @@ Top processes by CPU
 Percentages are of the whole CPU (all cores combined), not per core.
 
 ```
+
+$ sys
+RAM
+██████████░░░░░░░░░░  53% used
+Total         33.5 GB
+Used          17.8 GB
+Available     15.7 GB
+Cache         13.2 GB
+
+Top processes by memory
+ COMMAND         MEMORY  PROCESSES  % OF MEMORY 
+  brave           9.0 GB         37        27.1%  
+
+CPU usage (last 300ms)
+Programs       12.3%
+System          3.0%
+Idle           84.7%
+...
+
+Disk usage
+ FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USAGE             MOUNTED ON
+ /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%  /
+```
+
+```
 $ disk
 Disk usage
- FILESYSTEM      TYPE  SIZE  USED  AVAILABLE                                    USAGE  MOUNTED ON 
- /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%                         /          
+ FILESYSTEM      TYPE  SIZE  USED  AVAILABLE  USAGE             MOUNTED ON
+ /dev/nvme0n1p2  ext4  1.7T  376G       1.3T  ███░░░░░░░░░ 24%  /
 ```
 
 Small filesystems (like a sub-1GB `/boot`) are hidden by default to cut noise.

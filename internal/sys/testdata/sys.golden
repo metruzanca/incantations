@@ -1,0 +1,27 @@
+RAM
+███████████░░░░░░░░░   55% used
+Total         33.5 GB
+Used          18.5 GB
+Available     15.0 GB
+Cache         13.8 GB
+
+Top processes by memory
+ COMMAND   MEMORY  PROCESSES  % OF MEMORY 
+ chrome    1.5 GB          1         4.4% 
+ kthreadd  2.1 MB          1         0.0% 
+
+CPU usage (last 300ms)
+Programs       25.0%
+System          5.0%
+Idle           70.0%
+Load (1m 5m 15m) 1.50 0.75 0.50
+
+Top processes by CPU
+ COMMAND               PID  % OF CPU  MEMORY 
+ web server (worker)  4321     25.0%  1.5 GB 
+ kthreadd              555      1.2%  2.1 MB 
+
+Disk usage
+ FILESYSTEM        TYPE  SIZE  USED  AVAILABLE  USAGE             MOUNTED ON  
+ nfs:/data/shared  nfs4  4.0T  3.2T       800G  ██████████░░ 81%  /mnt/shared 
+ /dev/nvme0n1p2    ext4  1.7T  378G       1.3T  ███░░░░░░░░░ 24%  /           
