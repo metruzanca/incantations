@@ -133,6 +133,59 @@ func TestInitDeterministic(t *testing.T) {
 	}
 }
 
+func TestCommandHelp(t *testing.T) {
+	for _, name := range []string{"ram", "cpu", "disk"} {
+		for _, flag := range []string{"--help", "-h"} {
+			out, errOut, code := run(t, name, flag)
+			if code != 0 {
+				t.Fatalf("%s %s exit = %d, want 0", name, flag, code)
+			}
+			for _, want := range []string{"incantations " + name + " -", "Usage:"} {
+				if !strings.Contains(out, want) {
+					t.Errorf("%s %s missing %q:\n%s", name, flag, want, out)
+				}
+			}
+			if strings.Contains(out, "unknown command") {
+				t.Errorf("%s %s must not print an error", name, flag)
+			}
+			if errOut != "" {
+				t.Errorf("%s %s stderr should be empty, got %q", name, flag, errOut)
+			}
+		}
+	}
+}
+
+func TestCommandHelpDoesNotRun(t *testing.T) {
+	ran := false
+	entry := command.Entry{
+		Name: "probe", Summary: "test",
+		Run: func(args []string, stdout io.Writer) error { ran = true; return nil },
+	}
+	var out, errb bytes.Buffer
+	code := New(&out, &errb, entry).Run([]string{"probe", "--help"})
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	if ran {
+		t.Error("--help must not execute the command")
+	}
+	if !strings.Contains(out.String(), "Usage:") {
+		t.Errorf("fallback help should include Usage, got %q", out.String())
+	}
+}
+
+func TestInitHelp(t *testing.T) {
+	out, _, code := run(t, "init", "--help")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	for _, want := range []string{"incantations init -", "Usage:", "bash", "zsh", "fish", "eval"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("init --help missing %q", want)
+		}
+	}
+}
+
 func TestRunCommandPassesArgsThrough(t *testing.T) {
 	var got []string
 	entry := command.Entry{

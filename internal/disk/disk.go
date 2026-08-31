@@ -85,6 +85,12 @@ func Spec() command.Entry {
 	return command.Entry{
 		Name:    "disk",
 		Summary: "show disk usage for real filesystems (use -a to show all)",
+		Help: `Usage:
+  incantations disk [-a|--all]
+
+Shows usage for real filesystems, fullest first, with a usage bar per row.
+Filesystems under 1 GB (such as /boot) are hidden by default; pass -a or
+--all to show everything.`,
 		Run: func(args []string, stdout io.Writer) error {
 			showAll := false
 			for _, a := range args {

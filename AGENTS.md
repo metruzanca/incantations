@@ -51,7 +51,9 @@ Each utility is a self-contained package exposing:
      its own `disk_windows.go` stub.
    - Do NOT forward-declare `func Sample()` in the untagged file — Go treats a
      body-less declaration as assembly and it collides with the real one.
-4. `Spec()` returns a `command.Entry` wired to `Sample` + `Render`.
+4. `Spec()` returns a `command.Entry` wired to `Sample` + `Render`, plus an
+   optional `Help` string shown by `incantations <name> --help` (the app
+   falls back to a generic usage line for entries without one).
 
 To add a command: create `internal/<name>`, register its `Spec()` in
 `app.New`, add fixture/golden tests. No shell-config work: `init` regenerates

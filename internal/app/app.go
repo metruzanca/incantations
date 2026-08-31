@@ -65,6 +65,10 @@ func (a *App) Run(args []string) int {
 		a.usage(a.stderr)
 		return 2
 	}
+	if wantsHelp(args[1:]) {
+		a.commandHelp(a.stdout, entry)
+		return 0
+	}
 	logutil.Debugf("execute %s: args=%q", entry.Name, args[1:])
 	if err := entry.Run(args[1:], a.stdout); err != nil {
 		logutil.Errorf("%s: %v", entry.Name, err)
@@ -86,6 +90,27 @@ func (a *App) usage(w io.Writer) {
 	for _, e := range a.reg.List() {
 		fmt.Fprintf(w, "  %-10s %s\n", e.Name, e.Summary)
 	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Run incantations <command> --help for details on a command.")
+}
+
+// wantsHelp reports whether args request help output.
+func wantsHelp(args []string) bool {
+	for _, a := range args {
+		if a == "-h" || a == "--help" {
+			return true
+		}
+	}
+	return false
+}
+
+// commandHelp prints extended help for one command.
+func (a *App) commandHelp(w io.Writer, e command.Entry) {
+	help := e.Help
+	if help == "" {
+		help = "Usage:\n  incantations " + e.Name
+	}
+	fmt.Fprintf(w, "incantations %s - %s\n\n%s\n", e.Name, e.Summary, strings.TrimRight(help, "\n"))
 }
 
 func initSpec(reg *command.Registry) command.Entry {
@@ -93,6 +118,18 @@ func initSpec(reg *command.Registry) command.Entry {
 		Name:    "init",
 		Summary: "print shell integration code for your shell",
 		Meta:    true,
+		Help: `Usage:
+  incantations init <bash|zsh|fish>
+  eval "$(incantations init bash)"
+
+Prints shell functions so plain "ram", "cpu", and "disk" commands work in
+your shell. Add a line like this to your shell's configuration file:
+
+  eval "$(incantations init bash)"   # ~/.bashrc or ~/.zshrc
+  incantations init fish | source    # ~/.config/fish/config.fish
+
+Re-running prints the same output, so it is safe to eval again, and new
+utilities are picked up automatically.`,
 		Run: func(args []string, stdout io.Writer) error {
 			if len(args) != 1 {
 				return fmt.Errorf("usage: incantations init <%s>", strings.Join(shell.Supported(), "|"))

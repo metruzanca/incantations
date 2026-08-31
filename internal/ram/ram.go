@@ -43,6 +43,11 @@ func Spec() command.Entry {
 	return command.Entry{
 		Name:    "ram",
 		Summary: "show memory totals and top memory-consuming processes",
+		Help: `Usage:
+  incantations ram
+
+Shows total, used, available, and cache memory with a usage bar, plus the
+processes using the most memory. Processes are grouped by name.`,
 		Run: func(args []string, stdout io.Writer) error {
 			rep, err := Sample()
 			if err != nil {

@@ -13,7 +13,8 @@ type `ram`, `cpu`, or `disk`.
 | `cpu` | CPU utilization, load average, and the top CPU hogs |
 | `disk` | Disk usage for real filesystems with a usage bar; `-a` shows small partitions |
 
-Every command prints plain, human-readable output. No flags to memorize.
+Every command prints plain, human-readable output. No flags to memorize. For
+details on any command, run `incantations <command> --help`.
 
 ## Install
 

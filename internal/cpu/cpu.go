@@ -211,6 +211,12 @@ func Spec() command.Entry {
 	return command.Entry{
 		Name:    "cpu",
 		Summary: "show CPU utilization and top CPU-consuming processes",
+		Help: `Usage:
+  incantations cpu
+
+Samples the whole CPU over a short window and shows utilization, load
+average, and the top CPU-consuming processes. Percentages are of the whole
+CPU (all cores combined), not of a single core.`,
 		Run: func(args []string, stdout io.Writer) error {
 			rep, err := Sample()
 			if err != nil {

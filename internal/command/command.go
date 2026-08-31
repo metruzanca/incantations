@@ -19,6 +19,9 @@ type Entry struct {
 	// init) as true. Only non-meta commands get generated shell functions.
 	Meta bool
 	Run  Run
+	// Help is the extended text shown by `incantations <name> --help`, from
+	// the Usage line onward. Empty falls back to a generic usage line.
+	Help string
 }
 
 // Registry holds the ordered set of commands for this binary.
