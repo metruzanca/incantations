@@ -63,9 +63,12 @@ func NewTable(headers []string, right []bool, rows [][]string) string {
 		table.WithRows(trs),
 		table.WithHeight(len(rows)+1), // render exactly the data rows, no filler
 		table.WithStyles(table.Styles{
-			Header:   header,
-			Cell:     cell,
-			Selected: cell, // bubbletea always selects row 0; render it like the rest
+			Header: header,
+			Cell:   cell,
+			// bubbletea always "selects" row 0 and re-renders it through
+			// Selected as a whole. An empty style keeps it identical to the
+			// other rows; padding here would shove the first row right.
+			Selected: lipgloss.NewStyle(),
 		}),
 	)
 	return strings.TrimSuffix(t.View(), "\n")
