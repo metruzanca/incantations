@@ -168,7 +168,7 @@ func Render(r *Report, showAll bool) string {
 	b.WriteString("Disk usage\n")
 	b.WriteString(ui.NewTable(
 		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USAGE", "MOUNTED ON"},
-		[]bool{false, false, true, true, true, true, false},
+		[]bool{false, false, true, true, true, false, false},
 		out,
 	))
 	b.WriteString("\n")
