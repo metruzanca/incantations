@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
+	"github.com/mattn/go-runewidth"
 )
 
 // Styled enables color styling. main.go sets it when stdout is a terminal;
@@ -18,14 +18,16 @@ var Styled = false
 
 // NewTable renders a table with the given headers and rows. right marks the
 // numeric columns that should be right-justified. Column widths are sized to
-// the widest header or cell, measured in terminal cells (multibyte block
-// characters such as progress bars count as one cell).
+// the widest header or cell using go-runewidth, which matches the width logic
+// bubbles/table uses for truncation. (runewidth counts ANSI escape parameter
+// bytes as cells, so giving it the same measurement the renderer will use is
+// what keeps styled progress bars from being truncated.)
 func NewTable(headers []string, right []bool, rows [][]string) string {
 	if len(headers) == 0 {
 		return ""
 	}
 	widths := make([]int, len(headers))
-	w := func(s string) int { return ansi.StringWidth(ansi.Strip(s)) }
+	w := runewidth.StringWidth
 	for i, h := range headers {
 		widths[i] = w(h)
 	}

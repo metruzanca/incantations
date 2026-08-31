@@ -25,17 +25,27 @@ func Spec() command.Entry {
 		Name:    "sys",
 		Summary: "show RAM, CPU, and disk usage at once",
 		Help: `Usage:
-  incantations sys
+  incantations sys [-t|--totals]
 
 Runs ram, cpu, and disk in one shot and prints the three reports together.
 CPU sampling takes a short window (~300ms), so this is a bit slower than any
-single command.`,
+single command. Pass -t to also show the CPU utilization breakdown and load
+average.`,
 		Run: func(args []string, stdout io.Writer) error {
+			totals := false
+			for _, a := range args {
+				switch a {
+				case "-t", "--totals":
+					totals = true
+				default:
+					return fmt.Errorf("usage: incantations sys [-t|--totals]")
+				}
+			}
 			rep, err := Sample()
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep))
+			_, err = io.WriteString(stdout, Render(rep, totals))
 			return err
 		},
 	}
@@ -60,12 +70,13 @@ func Sample() (*Report, error) {
 }
 
 // Render concatenates the three sub-reports (with their section headings),
-// each ending in a blank line.
-func Render(r *Report) string {
+// each ending in a blank line. totals additionally shows the CPU utilization
+// breakdown and load average, which are hidden by default.
+func Render(r *Report, totals bool) string {
 	var b strings.Builder
 	b.WriteString(strings.TrimRight(ram.Render(r.RAM, true), "\n"))
 	b.WriteString("\n\n")
-	b.WriteString(strings.TrimRight(cpu.Render(r.CPU, true), "\n"))
+	b.WriteString(strings.TrimRight(cpu.Render(r.CPU, true, totals), "\n"))
 	b.WriteString("\n\n")
 	b.WriteString(strings.TrimRight(disk.Render(r.Disk, false, true), "\n"))
 	b.WriteString("\n")

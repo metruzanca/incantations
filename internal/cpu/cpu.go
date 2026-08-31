@@ -212,35 +212,50 @@ func Spec() command.Entry {
 		Name:    "cpu",
 		Summary: "show CPU utilization and top CPU-consuming processes",
 		Help: `Usage:
-  incantations cpu
+  incantations cpu [-t|--totals]
 
-Samples the whole CPU over a short window and shows utilization, load
-average, and the top CPU-consuming processes. Percentages are of the whole
-CPU (all cores combined), not of a single core.`,
+Shows the top CPU-consuming processes. Percentages are of the whole CPU (all
+cores combined), not of a single core. Pass -t to also show the utilization
+breakdown and load average, which most people will never need.`,
 		Run: func(args []string, stdout io.Writer) error {
+			totals := false
+			for _, a := range args {
+				switch a {
+				case "-t", "--totals":
+					totals = true
+				default:
+					return fmt.Errorf("usage: incantations cpu [-t|--totals]")
+				}
+			}
 			rep, err := Sample()
 			if err != nil {
 				return err
 			}
-			_, err = io.WriteString(stdout, Render(rep, false))
+			_, err = io.WriteString(stdout, Render(rep, false, totals))
 			return err
 		},
 	}
 }
 
-// Render formats a report for humans, most CPU-heavy first. Section headings
-// are only emitted when sectioned (used by sys).
-func Render(r *Report, sectioned bool) string {
+// Render formats a report for humans, most CPU-heavy first. The utilization
+// breakdown (Programs/System/Idle and the load average) is only shown when
+// totals is set; it is noise for most users. Section headings are only emitted
+// when sectioned (used by sys).
+func Render(r *Report, sectioned, totals bool) string {
 	var b strings.Builder
-	if sectioned {
+	if sectioned && totals {
 		fmt.Fprintf(&b, "CPU usage (last %dms)\n", r.Window.Milliseconds())
 	}
-	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Programs", r.User)
-	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "System", r.System)
-	fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Idle", r.Idle)
-	fmt.Fprintf(&b, "%-12s %.2f %.2f %.2f\n", "Load (1m 5m 15m)", r.Load[0], r.Load[1], r.Load[2])
+	if totals {
+		fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Programs", r.User)
+		fmt.Fprintf(&b, "%-12s %6.1f%%\n", "System", r.System)
+		fmt.Fprintf(&b, "%-12s %6.1f%%\n", "Idle", r.Idle)
+		fmt.Fprintf(&b, "%-12s %.2f %.2f %.2f\n", "Load (1m 5m 15m)", r.Load[0], r.Load[1], r.Load[2])
+	}
 	if len(r.Procs) > 0 {
-		b.WriteString("\n")
+		if totals {
+			b.WriteString("\n")
+		}
 		if sectioned {
 			b.WriteString("Top processes by CPU\n")
 		}

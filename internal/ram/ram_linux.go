@@ -21,7 +21,10 @@ var (
 
 // parseMeminfo parses /proc/meminfo-style contents. Values are in KiB.
 func parseMeminfo(r io.Reader) (MemInfo, error) {
-	var m MemInfo
+	var (
+		m        MemInfo
+		swapFree uint64
+	)
 	sc := bufio.NewScanner(r)
 	set := func(name string, v uint64) {
 		switch name {
@@ -33,6 +36,10 @@ func parseMeminfo(r io.Reader) (MemInfo, error) {
 			m.BuffersKiB = v
 		case "Cached:":
 			m.CachedKiB = v
+		case "SwapTotal:":
+			m.SwapTotalKiB = v
+		case "SwapFree:":
+			swapFree = v
 		}
 	}
 	for sc.Scan() {
@@ -53,6 +60,9 @@ func parseMeminfo(r io.Reader) (MemInfo, error) {
 		return m, fmt.Errorf("no MemTotal found")
 	}
 	m.UsedKiB = m.TotalKiB - m.AvailableKiB
+	if m.SwapTotalKiB > 0 {
+		m.SwapUsedKiB = m.SwapTotalKiB - swapFree
+	}
 	return m, nil
 }
 

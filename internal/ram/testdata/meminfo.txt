@@ -4,6 +4,8 @@ MemAvailable:   14673136 kB
 Buffers:         587852 kB
 Cached:         12874080 kB
 SwapCached:       154k kB
+SwapTotal:       8921084 kB
+SwapFree:        3480376 kB
 Active(anon):   1234567 kB
 Inactive(file): 2345678 kB
 KernelStack:       11264 kB

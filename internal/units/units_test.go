@@ -21,6 +21,21 @@ func TestHumanMemory(t *testing.T) {
 	}
 }
 
+func TestCompactKiB(t *testing.T) {
+	cases := map[uint64]string{
+		0:          "0KB",
+		1023:       "1.0MB",
+		1024:       "1.0MB",
+		1048576:    "1.1GB",
+		1061683200: "1.1TB",
+	}
+	for in, want := range cases {
+		if got := CompactKiB(in); got != want {
+			t.Errorf("CompactKiB(%d) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestPct(t *testing.T) {
 	if got := Pct(25, 100); got != 25.0 {
 		t.Errorf("Pct(25,100) = %v", got)

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/metruzanca/incantations/internal/command"
 	"github.com/metruzanca/incantations/internal/ui"
 )
@@ -143,7 +144,8 @@ func parseDf(r io.Reader) ([]Row, error) {
 
 // Render formats the report for humans, most full first. Small filesystems
 // are hidden unless showAll is set. The "Disk usage" heading is only emitted
-// when sectioned (used by sys).
+// when sectioned (used by sys). Each row carries a progress bar plus a
+// "used/size (free)" summary in the USAGE column.
 func Render(r *Report, showAll, sectioned bool) string {
 	rows := append([]Row(nil), r.Rows...)
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].UsePct > rows[j].UsePct })
@@ -158,27 +160,43 @@ func Render(r *Report, showAll, sectioned bool) string {
 		out = append(out, []string{
 			row.Filesystem,
 			row.Type,
-			row.Size,
-			row.Used,
-			row.Avail,
-			usageCell(row.UsePct),
+			usageCell(row),
 			row.Mount,
 		})
 	}
+	padColumn(out, 2)
 	var b strings.Builder
 	if sectioned {
 		b.WriteString("Disk usage\n")
 	}
 	b.WriteString(ui.NewTable(
-		[]string{"FILESYSTEM", "TYPE", "SIZE", "USED", "AVAILABLE", "USAGE", "MOUNTED ON"},
-		[]bool{false, false, true, true, true, false, false},
+		[]string{"FILESYSTEM", "TYPE", "USAGE", "MOUNTED ON"},
+		[]bool{false, false, false, false},
 		out,
 	))
 	b.WriteString("\n")
 	return b.String()
 }
 
-// usageCell renders a progress bar plus the numeric usage for one filesystem.
-func usageCell(pct float64) string {
-	return ui.ProgressBar(pct/100, 12) + " " + fmt.Sprintf("%.0f%%", pct)
+// usageCell renders a progress bar plus the numeric usage and a
+// "used/size (free)" summary for one filesystem.
+func usageCell(r Row) string {
+	return fmt.Sprintf("%s %3.0f%%  %s/%s (%s Free)",
+		ui.Bar(r.UsePct/100, 20), r.UsePct,
+		r.Used, r.Size, r.Avail)
+}
+
+// padColumn right-pads the given column so every row starts the next column at
+// the same position. The table truncates but does not pad cells, and the usage
+// summaries differ in length, which would otherwise shift MOUNTED ON.
+func padColumn(rows [][]string, col int) {
+	w := 0
+	for _, r := range rows {
+		if l := ansi.StringWidth(ansi.Strip(r[col])); l > w {
+			w = l
+		}
+	}
+	for i := range rows {
+		rows[i][col] += strings.Repeat(" ", w-ansi.StringWidth(ansi.Strip(rows[i][col])))
+	}
 }

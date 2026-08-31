@@ -49,6 +49,8 @@ func TestParseMeminfo(t *testing.T) {
 		BuffersKiB:   587852,
 		CachedKiB:    12874080,
 		UsedKiB:      32746652 - 14673136,
+		SwapTotalKiB: 8921084,
+		SwapUsedKiB:  8921084 - 3480376,
 	}
 	if m != want {
 		t.Errorf("parseMeminfo = %+v, want %+v", m, want)
@@ -101,6 +103,8 @@ func TestRender(t *testing.T) {
 			BuffersKiB:   587852,
 			CachedKiB:    12874080,
 			UsedKiB:      32746652 - 14673136,
+			SwapTotalKiB: 8921084,
+			SwapUsedKiB:  8921084 - 3480376,
 		},
 		Procs: []Process{
 			{Name: "chrome", RSSKiB: 1425408, Count: 1},

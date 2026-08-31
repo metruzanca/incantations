@@ -8,6 +8,12 @@ Top processes by memory
  chrome    1.5 GB          1         4.4% 
  kthreadd  2.1 MB          1         0.0% 
 
+CPU usage (last 300ms)
+Programs       25.0%
+System          5.0%
+Idle           70.0%
+Load (1m 5m 15m) 1.50 0.75 0.50
+
 Top processes by CPU
  COMMAND               PID  % OF CPU  MEMORY 
  web server (worker)  4321     25.0%  1.5 GB 

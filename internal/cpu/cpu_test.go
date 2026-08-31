@@ -184,12 +184,13 @@ func TestRender(t *testing.T) {
 			{PID: 555, Name: "kthreadd", CPU: 1.2, RSSKiB: 2048},
 		},
 	}
-	golden(t, "cpu_render.golden", Render(rep, false))
+	golden(t, "cpu_render.golden", Render(rep, false, true))
+	golden(t, "cpu_render_plain.golden", Render(rep, false, false))
 }
 
 func TestRenderDeterministic(t *testing.T) {
 	rep := &Report{User: 1, System: 2, Idle: 97, Window: time.Second}
-	if a, b := Render(rep, false), Render(rep, false); a != b {
+	if a, b := Render(rep, false, false), Render(rep, false, false); a != b {
 		t.Error("Render must be deterministic")
 	}
 }

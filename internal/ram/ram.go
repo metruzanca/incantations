@@ -19,6 +19,8 @@ type MemInfo struct {
 	BuffersKiB   uint64
 	CachedKiB    uint64
 	UsedKiB      uint64
+	SwapTotalKiB uint64
+	SwapUsedKiB  uint64
 }
 
 // Process is a group of processes sharing a command name, with their combined
@@ -46,8 +48,8 @@ func Spec() command.Entry {
 		Help: `Usage:
   incantations ram
 
-Shows total, used, available, and cache memory with a usage bar, plus the
-processes using the most memory. Processes are grouped by name.`,
+Shows RAM and swap usage with a usage bar, plus the processes using the most
+memory. Processes are grouped by name.`,
 		Run: func(args []string, stdout io.Writer) error {
 			rep, err := Sample()
 			if err != nil {
@@ -59,21 +61,33 @@ processes using the most memory. Processes are grouped by name.`,
 	}
 }
 
-// Render formats a report for humans. Section headings ("RAM",
+// Render formats a report for humans. Section headings ("Memory",
 // "Top processes by memory") are only emitted when sectioned, so sys can
-// label its combined output while individual invocations stay clean.
+// label its combined output while individual invocations stay clean. RAM and
+// swap (when present) share one table, each row a progress bar plus a summary
+// of the form "used/total (free)".
 func Render(r *Report, sectioned bool) string {
 	var b strings.Builder
 	m := r.Mem
-	usedPct := units.Pct(m.UsedKiB, m.TotalKiB)
 	if sectioned {
-		b.WriteString("RAM\n")
+		b.WriteString("Memory\n")
 	}
-	fmt.Fprintf(&b, "%s %4.0f%% used\n", ui.Bar(usedPct/100, 20), usedPct)
-	fmt.Fprintf(&b, "%-13s %s\n", "Total", units.HumanMemory(m.TotalKiB))
-	fmt.Fprintf(&b, "%-13s %s\n", "Used", units.HumanMemory(m.UsedKiB))
-	fmt.Fprintf(&b, "%-13s %s\n", "Available", units.HumanMemory(m.AvailableKiB))
-	fmt.Fprintf(&b, "%-13s %s\n", "Cache", units.HumanMemory(m.BuffersKiB+m.CachedKiB))
+	rows := [][]string{{
+		"RAM",
+		usageCell(units.Pct(m.UsedKiB, m.TotalKiB), m.UsedKiB, m.TotalKiB, m.AvailableKiB),
+	}}
+	if m.SwapTotalKiB > 0 {
+		rows = append(rows, []string{
+			"SWAP",
+			usageCell(units.Pct(m.SwapUsedKiB, m.SwapTotalKiB), m.SwapUsedKiB, m.SwapTotalKiB, m.SwapTotalKiB-m.SwapUsedKiB),
+		})
+	}
+	b.WriteString(ui.NewTable(
+		[]string{"TYPE", "USAGE"},
+		[]bool{false, false},
+		rows,
+	))
+	b.WriteString("\n")
 	if len(r.Procs) > 0 {
 		b.WriteString("\n")
 		if sectioned {
@@ -96,4 +110,12 @@ func Render(r *Report, sectioned bool) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// usageCell renders a progress bar, the usage percentage, and the
+// "used/total (free)" summary for one memory block.
+func usageCell(pct float64, used, total, free uint64) string {
+	return fmt.Sprintf("%s %3.0f%%  %s/%s (%s Free)",
+		ui.Bar(pct/100, 20), pct,
+		units.CompactKiB(used), units.CompactKiB(total), units.CompactKiB(free))
 }

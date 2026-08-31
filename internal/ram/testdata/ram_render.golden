@@ -1,8 +1,6 @@
-███████████░░░░░░░░░   55% used
-Total         33.5 GB
-Used          18.5 GB
-Available     15.0 GB
-Cache         13.8 GB
+ TYPE  USAGE                                                  
+ RAM   ███████████░░░░░░░░░  55%  18.5GB/33.5GB (15.0GB Free) 
+ SWAP  ████████████░░░░░░░░  61%  5.6GB/9.1GB (3.6GB Free)    
 
  COMMAND   MEMORY  PROCESSES  % OF MEMORY 
  chrome    1.5 GB          1         4.4% 

@@ -13,7 +13,8 @@ func Pct(part, whole uint64) float64 {
 }
 
 // HumanMemory renders a KiB count using decimal units (GB, MB), which is what
-// people who are not storage engineers expect to see.
+// people who are not storage engineers expect to see. The unit is preceded by
+// a space ("33.5 GB").
 func HumanMemory(kib uint64) string {
 	b := float64(kib) * 1024
 	switch {
@@ -25,5 +26,21 @@ func HumanMemory(kib uint64) string {
 		return fmt.Sprintf("%.1f MB", b/1e6)
 	default:
 		return fmt.Sprintf("%.0f KB", b/1e3)
+	}
+}
+
+// CompactKiB renders a KiB count like HumanMemory but with no space between
+// number and unit, for tight summaries such as "19.2GB/33.5GB".
+func CompactKiB(kib uint64) string {
+	b := float64(kib) * 1024
+	switch {
+	case b >= 1e12:
+		return fmt.Sprintf("%.1fTB", b/1e12)
+	case b >= 1e9:
+		return fmt.Sprintf("%.1fGB", b/1e9)
+	case b >= 1e6:
+		return fmt.Sprintf("%.1fMB", b/1e6)
+	default:
+		return fmt.Sprintf("%.0fKB", b/1e3)
 	}
 }

@@ -41,6 +41,8 @@ func sampleReport() *Report {
 				BuffersKiB:   587852,
 				CachedKiB:    12874080,
 				UsedKiB:      32746652 - 14673136,
+				SwapTotalKiB: 8921084,
+				SwapUsedKiB:  8921084 - 3480376,
 			},
 			Procs: []ram.Process{
 				{Name: "chrome", RSSKiB: 1425408, Count: 1},
@@ -66,12 +68,13 @@ func sampleReport() *Report {
 }
 
 func TestRender(t *testing.T) {
-	golden(t, "sys.golden", Render(sampleReport()))
+	golden(t, "sys.golden", Render(sampleReport(), false))
+	golden(t, "sys_totals.golden", Render(sampleReport(), true))
 }
 
 func TestRenderSections(t *testing.T) {
-	out := Render(sampleReport())
-	for _, section := range []string{"RAM\n", "CPU usage", "Disk usage", "Top processes by CPU", "Top processes by memory"} {
+	out := Render(sampleReport(), true)
+	for _, section := range []string{"Memory\n", "CPU usage", "Disk usage", "Top processes by CPU", "Top processes by memory"} {
 		if !strings.Contains(out, section) {
 			t.Errorf("output missing section %q", section)
 		}
@@ -80,7 +83,7 @@ func TestRenderSections(t *testing.T) {
 
 func TestRenderDeterministic(t *testing.T) {
 	rep := sampleReport()
-	if a, b := Render(rep), Render(rep); a != b {
+	if a, b := Render(rep, false), Render(rep, false); a != b {
 		t.Error("Render must be deterministic")
 	}
 }

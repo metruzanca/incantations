@@ -1,0 +1,3 @@
+ COMMAND               PID  % OF CPU  MEMORY 
+ web server (worker)  4321     99.9%  1.5 GB 
+ kthreadd              555      1.2%  2.1 MB 
