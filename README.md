@@ -52,10 +52,11 @@ won't ever require changes to your shell config.
 ```
 $ ram
 RAM
+██████████░░░░░░░░░░  51% used
 Total         33.5 GB
-Used          17.2 GB   51%
-Available     16.3 GB
-Cache         13.1 GB
+Used          16.8 GB
+Available     16.7 GB
+Cache         13.2 GB
 
 Top processes by memory
  COMMAND         MEMORY  PROCESSES  % OF MEMORY 

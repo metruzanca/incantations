@@ -58,9 +58,11 @@ func Spec() command.Entry {
 func Render(r *Report) string {
 	var b strings.Builder
 	m := r.Mem
+	usedPct := units.Pct(m.UsedKiB, m.TotalKiB)
 	b.WriteString("RAM\n")
+	fmt.Fprintf(&b, "%s %4.0f%% used\n", ui.ProgressBar(usedPct/100, 20), usedPct)
 	fmt.Fprintf(&b, "%-13s %s\n", "Total", units.HumanMemory(m.TotalKiB))
-	fmt.Fprintf(&b, "%-13s %s %4.0f%%\n", "Used", units.HumanMemory(m.UsedKiB), units.Pct(m.UsedKiB, m.TotalKiB))
+	fmt.Fprintf(&b, "%-13s %s\n", "Used", units.HumanMemory(m.UsedKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Available", units.HumanMemory(m.AvailableKiB))
 	fmt.Fprintf(&b, "%-13s %s\n", "Cache", units.HumanMemory(m.BuffersKiB+m.CachedKiB))
 	if len(r.Procs) > 0 {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -68,4 +69,19 @@ func NewTable(headers []string, right []bool, rows [][]string) string {
 		}),
 	)
 	return strings.TrimSuffix(t.View(), "\n")
+}
+
+// ProgressBar renders a filled progress bar of the given cell width for a
+// ratio in [0,1]. The percentage readout is left to the caller.
+func ProgressBar(ratio float64, width int) string {
+	m := progress.New(progress.WithWidth(width))
+	m.ShowPercentage = false
+	if Styled {
+		m.FullColor = "#7D56F4"
+		m.EmptyColor = "#3a3a3a"
+	} else {
+		m.FullColor = ""
+		m.EmptyColor = ""
+	}
+	return m.ViewAs(ratio)
 }
