@@ -5,6 +5,8 @@ Small system utilities for people who don't remember the linux incantations.
 Instead of recalling `ps aux | sort -rk 4` or `df -h | grep -v tmpfs`,
 type `ram`, `cpu`, or `disk`.
 
+![screenshot-usage-example](.github/demo.png)
+
 ## What you get
 
 | Command | What it shows |
@@ -24,14 +26,7 @@ picks up the newest release (or pin one with `@v0.x.y`).
 
 ## Set up your shell
 
-Run `incantations init` once, follow its advice, and you're done. It detects
-your shell and prints the exact line to add to your config file.
-
-That line defines a shell function for each utility, so you can type a plain
-`ram`, `cpu`, or `disk` instead of `incantations ram`. Everything stays one
-small binary behind a few functions rather than a cluttered pile of separately
-installed utilities, and adding or upgrading commands never touches your
-shell config again.
+Run `incantations init` once and follow its advice for your shell.
 
 ## Examples
 
