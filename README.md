@@ -9,9 +9,9 @@ type `ram`, `cpu`, or `disk`.
 
 | Command | What it shows |
 | --- | --- |
-| `ram` | Total, used, and available memory, plus the top memory hogs |
-| `cpu` | CPU utilization, load average, and the top CPU hogs |
-| `disk` | Disk usage for real filesystems with a usage bar; `-a` shows small partitions |
+| `ram` | RAM and swap usage with a usage bar, plus the top memory hogs |
+| `cpu` | The top CPU hogs; add `-t` for the utilization breakdown and load average |
+| `disk` | Disk usage per real filesystem with a usage bar; `-a` shows small partitions |
 
 ## Install
 
@@ -37,32 +37,45 @@ shell config again.
 
 ```
 $ ram
-██████████░░░░░░░░░░  51% used
-Total         33.5 GB
-Used          16.8 GB
-Available     16.7 GB
-Cache         13.2 GB
+ TYPE   USAGE                                                  
+ RAM    ███████████░░░░░░░░░  55%  18.5GB/33.5GB (15.0GB Free) 
+ SWAP   ████████████░░░░░░░░  61%  5.6GB/9.1GB (3.6GB Free)    
 
- COMMAND         MEMORY  PROCESSES  % OF MEMORY 
-  brave           9.0 GB         37        27.1%  
- opencode        6.6 GB          8        20.0%   
- steamwebhelper  1.9 GB         12         5.7%   
+ COMMAND   MEMORY  PROCESSES  % OF MEMORY 
+ chrome    1.5 GB          1         4.4% 
+ kthreadd  2.1 MB          1         0.0% 
 ```
 
 ```
 $ cpu
+ COMMAND               PID  % OF CPU  MEMORY 
+ web server (worker)  4321     99.9%  1.5 GB 
+ kthreadd              555      1.2%  2.1 MB 
+```
+
+Percentages are of the whole CPU (all cores combined), not per core. The
+utilization breakdown and load average are usually noise, so they're tucked
+behind `cpu -t` (also `sys -t`):
+
+```
+$ cpu -t
 Programs        9.3%
 System          2.9%
 Idle           87.8%
 Load (1m 5m 15m) 2.01 1.83 1.77
 
  COMMAND            PID  % OF CPU  MEMORY 
-  opencode            533343      4.5%  900 MB  
+ opencode            533343      4.5%  900 MB  
  gpu-screen-recorder  318925      1.7%  448 MB  
  gnome-shell          3024       0.8%  459 MB  
 ```
 
-Percentages are of the whole CPU (all cores combined), not per core.
+```
+$ disk
+ FILESYSTEM        TYPE  USAGE                                             MOUNTED ON 
+ nfs:/data/shared  nfs4  ████████████████░░░░  81%  3.2T/4.0T (800G Free)  /mnt/shared
+ /dev/nvme0n1p2    ext4  █████░░░░░░░░░░░░░░░  24%  377G/1.7T (1.3T Free)  /
+```
 
 Small filesystems (like a sub-1GB `/boot`) are hidden by default to cut noise.
 Show everything with `disk -a` (or `--all`).
