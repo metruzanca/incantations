@@ -132,6 +132,9 @@ Replaces `ss -tulpn` (or the `lsof -i` dance). Which TCP ports are listening,
 grouped by the process that owns them, local ports first; well-known ports are
 labeled from `/etc/services`. `ports 8080` checks a single port.
 
+Sockets are read straight from `/proc/net` and matched to processes the same
+way, so there's nothing to install — no `ss`, no `netstat`, no root.
+
 UDP sockets and IPv6 addresses are usually not what you're looking for, so
 both are hidden by default: pass `--udp` to include UDP and `--ipv6` to
 include the IPv6 listeners.

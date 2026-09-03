@@ -1,5 +1,5 @@
 // Package ports reports which TCP and UDP ports are listening and which
-// process owns each, by parsing `ss -ltulpn` output.
+// process owns each, by reading /proc/net directly — no external tools.
 package ports
 
 import (
@@ -27,60 +27,6 @@ type Row struct {
 type Report struct {
 	Rows []Row
 	Svc  map[int]string // port -> service name from /etc/services
-}
-
-// netids are the only socket types `ss -ltu` can emit; anything else is a
-// wrapped continuation line to skip.
-var netids = map[string]bool{"tcp": true, "tcp6": true, "udp": true, "udp6": true}
-
-// parseSs parses `ss -ltulpn` output into rows. Socket addresses never contain
-// spaces, so the process field (users:(...)) is whatever follows column 6.
-func parseSs(r io.Reader) ([]Row, error) {
-	var rows []Row
-	sc := bufio.NewScanner(r)
-	for sc.Scan() {
-		fields := strings.Fields(sc.Text())
-		if len(fields) < 6 || !netids[fields[0]] {
-			continue // header, blank, or a wrapped continuation line
-		}
-		process, pid := parseUsers(fields[6:])
-		rows = append(rows, Row{
-			Proto:   fields[0],
-			Local:   fields[4],
-			Process: process,
-			PID:     pid,
-		})
-	}
-	return rows, sc.Err()
-}
-
-// parseUsers extracts the first process name and PID from the ss process
-// column, which looks like users:(("sshd",pid=1234,fd=5)).
-func parseUsers(fields []string) (string, int) {
-	joined := strings.Join(fields, " ")
-	open := strings.Index(joined, "((")
-	if open < 0 || open+2 >= len(joined) || joined[open+2] != '"' {
-		return "", 0
-	}
-	start := open + 3
-	var name string
-	if end := strings.IndexByte(joined[start:], '"'); end >= 0 {
-		name = joined[start : start+end]
-	}
-	pid := 0
-	if i := strings.Index(joined, "pid="); i >= 0 {
-		pid, _ = strconv.Atoi(portDigits(joined[i+4:]))
-	}
-	return name, pid
-}
-
-// portDigits scans digits off the front of s (the PID run).
-func portDigits(s string) string {
-	i := 0
-	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
-		i++
-	}
-	return s[:i]
 }
 
 // parseServices reads /etc/services-style contents ("http 80/tcp") into a
@@ -134,7 +80,8 @@ func Spec() command.Entry {
   incantations ports --kill PORT
 
 Shows which TCP ports are listening and what's using each one, grouped by
-process. Data comes from ss -ltulpn, the modern replacement for netstat.
+process. Sockets are read straight from /proc/net, so there is nothing extra
+to install — no ss, no netstat, no root.
 
 UDP sockets and IPv6 addresses are usually not what you're looking for, so
 they are hidden by default: pass --udp to include UDP and --ipv6 to include

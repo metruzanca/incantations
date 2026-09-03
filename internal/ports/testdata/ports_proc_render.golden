@@ -1,0 +1,8 @@
+ PROCESS     PID  PROTO  LOCAL ADDRESS                     
+ chromium    123  tcp    127.0.0.1:46747                   
+ sshd        456  tcp    [::]:22 (ssh)                     
+ tailscaled  789  udp    192.168.1.151:50818               
+ -             -  tcp    [::1]:631 (ipp)                   
+                  udp    0.0.0.0:1900                      
+                  tcp    0.0.0.0:8766                      
+                  tcp    [fd7a:115c:a1e0::1a36:8f39]:52412 

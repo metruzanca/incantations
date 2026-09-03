@@ -103,18 +103,24 @@ files of its own.
   desktop users see a clean one-liner. `powerRoot` is a package var so tests
   inject a fake `/sys/class/power_supply`. Non-Linux returns the unsupported
   stub.
-- `ports` shells out to `ss -ltulpn` (Linux-only) like `disk` shells to `df`;
-  `parseSs` is the pure core, and `parseUsers` extracts name+PID from the
-  `users:(("name",pid=...))` column. `parseServices` reads `/etc/services`
-  for the `0.0.0.0:22 (ssh)` labels. Without root, other users' sockets show
-  no PID and group under `-`. `Render` shows TCP over IPv4 by default, grouped
-  per process (`groupByPID`, unowned last); `--udp` and `--ipv6` unhide the
-  rest (IPv6 is detected by the `[` address prefix, since ss labels the netid
-  `tcp`/`udp` for both families). An optional numeric `PORT` filters the
-  listing. `--stop PORT`/`--kill PORT` send SIGTERM/SIGKILL to the owned PIDs
-  on that port via `signalPort`; the signal itself is `signalProcess`, a
-  package var (real `syscall.Kill` on Linux, swappable in tests), with
-  `termSignal`/`killSignal` defined per build tag.
+- `ports` reads `/proc/net/{tcp,tcp6,udp,udp6}` directly and needs no external
+  tools (Linux-only). `parseProcNet` is the pure core (state filter: TCP
+  `0A`/LISTEN, UDP `07`/UNCONN); `decodeProcAddr` decodes hosts — IPv4 is
+  little-endian hex, IPv6 is four host-byte-order words that get stored
+  little-endian into the address. `pidsForInodes` maps socket inodes to PIDs
+  by readlinking `/proc/<pid>/fd` entries (`socket:[inode]`), names come from
+  `comm`. Because `/proc` cannot know `IPV6_V6ONLY`, a dual-stack wildcard
+  bind shows as `[::]:P` where ss would draw `*:P`, and link-local sockets
+  lose their `%iface` scope — accepted gaps; TCP/IPv4 output matches
+  `ss -ltulpn` byte-for-byte. `parseServices` reads `/etc/services` for the
+  `0.0.0.0:22 (ssh)` labels. Without root, other users' sockets show no PID
+  and group under `-`. `Render` shows TCP over IPv4 by default, grouped per
+  process (`groupByPID`, unowned last); `--udp` and `--ipv6` unhide the rest
+  (IPv6 is detected by the `[` address prefix). An optional numeric `PORT`
+  filters the listing. `--stop PORT`/`--kill PORT` send SIGTERM/SIGKILL to
+  the owned PIDs on that port via `signalPort`; the signal itself is
+  `signalProcess`, a package var (real `syscall.Kill` on Linux, swappable in
+  tests), with `termSignal`/`killSignal` defined per build tag.
 - `net` samples `/proc/net/dev` twice (~1s apart) for live RX/TX rates
   (`parseDev` + `computeRates` are the pure, fixture-tested bits) and resolves
   IPs from the stdlib `net` package. Interface counters are cumulative, so a

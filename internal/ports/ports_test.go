@@ -39,56 +39,6 @@ func fixture(t *testing.T, name string) *os.File {
 	return f
 }
 
-func TestParseSs(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(rows) != 10 {
-		t.Fatalf("parsed %d rows, want 10", len(rows))
-	}
-	if rows[0].Proto != "udp" {
-		t.Errorf("first row proto = %q, want udp", rows[0].Proto)
-	}
-	// Process and PID extraction from the users:(...) column.
-	if rows[0].Process != "brave" || rows[0].PID != 86298 {
-		t.Errorf("row 0 process = %q pid=%d", rows[0].Process, rows[0].PID)
-	}
-	// Dotted process names must survive intact.
-	if rows[3].Process != ".spotify-wrappe" || rows[3].PID != 3195 {
-		t.Errorf("row 3 process = %q pid=%d", rows[3].Process, rows[3].PID)
-	}
-	// A socket without a process column leaves both blank.
-	if rows[6].Local != "0.0.0.0:22" || rows[6].Process != "" || rows[6].PID != 0 {
-		t.Errorf("row 6 = %+v", rows[6])
-	}
-	// IPv6 zone-qualified addresses are preserved.
-	if rows[1].Local != "[fe80::543b:893b:c7cc:b376]%wlp5s0:546" {
-		t.Errorf("row 1 local = %q", rows[1].Local)
-	}
-}
-
-func TestParseSsSkipsHeaderAndWrapped(t *testing.T) {
-	src := "Netid State  Recv-Q Send-Q  Local Address:Port  Peer Address:PortProcess\n" +
-		"   some wrapped continuation line without a netid\n" +
-		"tcp   LISTEN 0      128      0.0.0.0:22   0.0.0.0:*\n"
-	rows, err := parseSs(strings.NewReader(src))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(rows) != 1 || rows[0].Local != "0.0.0.0:22" {
-		t.Fatalf("rows = %+v, want just the tcp row", rows)
-	}
-}
-
-func TestParseUsersMultiple(t *testing.T) {
-	// ss can report several processes per socket; the first one wins.
-	name, pid := parseUsers([]string{`users:(("first",pid=1,fd=1),("second",pid=2,fd=2))`})
-	if name != "first" || pid != 1 {
-		t.Errorf("parseUsers = %q %d, want first 1", name, pid)
-	}
-}
-
 func TestParseServices(t *testing.T) {
 	m := make(map[int]string)
 	parseServices(fixture(t, "services.txt"), m)
@@ -120,14 +70,10 @@ func TestLocalPort(t *testing.T) {
 }
 
 func TestRender(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	svc := make(map[int]string)
 	parseServices(fixture(t, "services.txt"), svc)
 	// Default view: TCP over IPv4, grouped by process.
-	golden(t, "ports_render.golden", Render(&Report{Rows: rows, Svc: svc}, false, false))
+	golden(t, "ports_render.golden", Render(&Report{Rows: procRows(t), Svc: svc}, false, false))
 }
 
 func TestRenderEmpty(t *testing.T) {
@@ -137,45 +83,27 @@ func TestRenderEmpty(t *testing.T) {
 }
 
 func TestRenderDeterministic(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rep := &Report{Rows: rows}
+	rep := &Report{Rows: procRows(t)}
 	if a, b := Render(rep, false, true), Render(rep, false, true); a != b {
 		t.Error("Render must be deterministic")
 	}
 }
 
 func TestRenderGroupsByPID(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	svc := make(map[int]string)
-	parseServices(fixture(t, "services.txt"), svc)
-	// TCP v4 rows only, one table: chromium owns 46747, unowned gets 22 + 631.
-	got := Render(&Report{Rows: rows, Svc: svc}, false, false)
-	for _, want := range []string{"PROCESS", "chromium", "1228742", "127.0.0.1:46747", "0.0.0.0:22 (ssh)"} {
+	got := Render(&Report{Rows: procRows(t)}, false, false)
+	for _, want := range []string{"PROCESS", "chromium", "123", "127.0.0.1:46747", "0.0.0.0:8766"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("grouped output missing %q:\n%s", want, got)
 		}
 	}
 	// A continuation socket must not print its process/PID again.
-	if strings.Count(got, "chromium") != 1 || strings.Count(got, "1228742") != 1 {
-		t.Errorf("process/PID should appear once per group:\n%s", got)
-	}
-	if strings.Contains(got, ".spotify-wrappe") && strings.Contains(got, "5353") {
-		t.Error("UDP sockets should be hidden by default")
+	if strings.Count(got, "chromium") != 1 {
+		t.Errorf("process should appear once per group:\n%s", got)
 	}
 }
 
 func TestRenderUDPRequiresFlag(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	def := Render(&Report{Rows: rows}, false, false)
+	def := Render(&Report{Rows: procRows(t)}, false, false)
 	if strings.Contains(def, "udp") {
 		t.Error("UDP sockets should be hidden unless --udp")
 	}
@@ -183,7 +111,7 @@ func TestRenderUDPRequiresFlag(t *testing.T) {
 	if strings.Contains(def, "PROTO") || strings.Contains(def, "tcp ") {
 		t.Errorf("PROTO column should be dropped without --udp:\n%s", def)
 	}
-	withUDP := Render(&Report{Rows: rows}, false, true)
+	withUDP := Render(&Report{Rows: procRows(t)}, false, true)
 	if !strings.Contains(withUDP, "udp") {
 		t.Error("--udp should include UDP sockets")
 	}
@@ -193,15 +121,11 @@ func TestRenderUDPRequiresFlag(t *testing.T) {
 }
 
 func TestRenderIPv6RequiresFlag(t *testing.T) {
-	rows, err := parseSs(fixture(t, "ss.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	def := Render(&Report{Rows: rows}, false, false)
-	if strings.Contains(def, "[::") || strings.Contains(def, "tcp6") {
+	def := Render(&Report{Rows: procRows(t)}, false, false)
+	if strings.Contains(def, "[::") {
 		t.Error("IPv6 sockets should be hidden unless --ipv6")
 	}
-	withV6 := Render(&Report{Rows: rows}, true, false)
+	withV6 := Render(&Report{Rows: procRows(t)}, true, false)
 	if !strings.Contains(withV6, "[::") {
 		t.Error("--ipv6 should include IPv6 sockets")
 	}
@@ -287,4 +211,229 @@ func TestSignalPortErrors(t *testing.T) {
 		!strings.Contains(err.Error(), "sudo") {
 		t.Errorf("expect sudo hint for unowned socket, got %v", err)
 	}
+}
+
+func TestDecodeProcAddr(t *testing.T) {
+	cases := map[string]string{
+		"0100007F":                         "127.0.0.1",
+		"00000000":                         "0.0.0.0",
+		"9701A8C0":                         "192.168.1.151",
+		"00000000000000000000000000000000": "[::]",
+		"00000000000000000000000001000000": "[::1]",
+		"5C117AFD0000E0A100000000398F361A": "[fd7a:115c:a1e0::1a36:8f39]",
+	}
+	for in, want := range cases {
+		if got := decodeProcAddr(in); got != want {
+			t.Errorf("decodeProcAddr(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestParseProcLocal(t *testing.T) {
+	cases := map[string]struct {
+		host string
+		port int
+	}{
+		"0100007F:B69B":                         {"127.0.0.1", 46747},
+		"00000000:0016":                         {"0.0.0.0", 22},
+		"00000000000000000000000000000000:0277": {"[::]", 631},
+		"5C117AFD0000E0A100000000398F361A:CCBC": {"[fd7a:115c:a1e0::1a36:8f39]", 52412},
+	}
+	for in, want := range cases {
+		host, port, ok := parseProcLocal(in)
+		if !ok || host != want.host || port != want.port {
+			t.Errorf("parseProcLocal(%q) = %q %d %v, want %q %d", in, host, port, ok, want.host, want.port)
+		}
+	}
+}
+
+func TestParseProcNet(t *testing.T) {
+	tcp, err := parseProcNet(fixture(t, "proc_tcp.txt"), "tcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tcp) != 2 || tcp[0].row.Local != "127.0.0.1:46747" || tcp[0].inode != 8759300 ||
+		tcp[1].row.Local != "0.0.0.0:8766" || tcp[1].inode != 2501496 {
+		t.Errorf("tcp entries = %+v", tcp)
+	}
+	tcp6, err := parseProcNet(fixture(t, "proc_tcp6.txt"), "tcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tcp6) != 3 {
+		t.Fatalf("tcp6 entries = %d, want 3 (one ESTABLISHED dropped)", len(tcp6))
+	}
+	if tcp6[0].row.Local != "[::]:22" || tcp6[1].row.Local != "[::1]:631" ||
+		tcp6[2].row.Local != "[fd7a:115c:a1e0::1a36:8f39]:52412" {
+		t.Errorf("tcp6 locals = %+v", tcp6)
+	}
+	udp, err := parseProcNet(fixture(t, "proc_udp.txt"), "udp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(udp) != 2 || udp[0].row.Local != "192.168.1.151:50818" || udp[0].inode != 13759695 ||
+		udp[1].row.Local != "0.0.0.0:1900" || udp[1].inode != 40054 {
+		t.Errorf("udp entries = %+v", udp)
+	}
+}
+
+func TestPidsForInodes(t *testing.T) {
+	root := fakeProcTree(t)
+	unreadable := filepath.Join(root, "111")
+	if err := os.MkdirAll(unreadable, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(unreadable, 0o755)
+
+	owner := pidsForInodes(root, map[uint64]bool{8759300: true, 18552: true, 13759695: true, 999999: true})
+	want := map[uint64]int{8759300: 123, 18552: 456, 13759695: 789}
+	for inode, pid := range want {
+		if owner[inode] != pid {
+			t.Errorf("inode %d owner = %d, want %d", inode, owner[inode], pid)
+		}
+	}
+	if _, ok := owner[999999]; ok {
+		t.Error("unknown inode must not be claimed")
+	}
+}
+
+func TestPortsFromProc(t *testing.T) {
+	rows, err := portsFromProc(fakeProcTree(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 7 {
+		t.Fatalf("got %d rows, want 7 (2 tcp, 3 tcp6, 2 udp)", len(rows))
+	}
+	byLocal := make(map[string]Row)
+	for _, r := range rows {
+		byLocal[r.Local] = r
+	}
+	got := byLocal["127.0.0.1:46747"]
+	if got.PID != 123 || got.Process != "chromium" {
+		t.Errorf("127.0.0.1:46747 = %+v, want pid 123 chromium", got)
+	}
+	if got := byLocal["0.0.0.0:8766"]; got.PID != 0 || got.Process != "" {
+		t.Errorf("0.0.0.0:8766 should be unowned, got %+v", got)
+	}
+	if got := byLocal["[::]:22"]; got.PID != 456 || got.Process != "sshd" {
+		t.Errorf("[::]:22 = %+v, want pid 456 sshd", got)
+	}
+	if got := byLocal["192.168.1.151:50818"]; got.PID != 789 || got.Process != "tailscaled" {
+		t.Errorf("192.168.1.151:50818 = %+v, want pid 789 tailscaled", got)
+	}
+	if got := byLocal["0.0.0.0:1900"]; got.PID != 0 {
+		t.Errorf("0.0.0.0:1900 should be unowned, got %+v", got)
+	}
+}
+
+func TestRenderFromProc(t *testing.T) {
+	svc := make(map[int]string)
+	parseServices(fixture(t, "services.txt"), svc)
+	rep := &Report{Rows: procRows(t), Svc: svc}
+	golden(t, "ports_proc_render.golden", Render(rep, true, true))
+	// The default view still hides UDP and IPv6 sockets.
+	def := Render(rep, false, false)
+	if strings.Contains(def, "udp") || strings.Contains(def, "[::") {
+		t.Errorf("default view must hide udp/ipv6:\n%s", def)
+	}
+}
+
+func TestSample(t *testing.T) {
+	oldRoot, oldServices := procRoot, servicesPath
+	procRoot = fakeProcTree(t)
+	data, err := os.ReadFile(filepath.Join("testdata", "services.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	svcFile := filepath.Join(t.TempDir(), "services")
+	if err := os.WriteFile(svcFile, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	servicesPath = svcFile
+	defer func() { procRoot, servicesPath = oldRoot, oldServices }()
+
+	rep, err := Sample()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Rows) == 0 {
+		t.Fatal("Sample should read /proc sockets")
+	}
+	for _, r := range rep.Rows {
+		if r.Local == "127.0.0.1:46747" && (r.PID != 123 || r.Process != "chromium") {
+			t.Errorf("Sample should resolve pids, got %+v", r)
+		}
+	}
+	if rep.Svc[22] != "ssh" || rep.Svc[631] != "ipp" {
+		t.Errorf("Sample should attach service names, got %v", rep.Svc)
+	}
+}
+
+func TestSampleMissingServices(t *testing.T) {
+	oldRoot, oldServices := procRoot, servicesPath
+	procRoot = fakeProcTree(t)
+	servicesPath = filepath.Join(t.TempDir(), "no-services")
+	defer func() { procRoot, servicesPath = oldRoot, oldServices }()
+
+	rep, err := Sample()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Rows) == 0 {
+		t.Fatal("Sample should read /proc sockets without /etc/services")
+	}
+}
+
+// procRows reads the fake /proc tree once for render tests.
+func procRows(t *testing.T) []Row {
+	t.Helper()
+	rows, err := portsFromProc(fakeProcTree(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rows
+}
+
+// fakeProcTree builds a fake /proc with crafted /proc/net files and a couple
+// of processes owning socket fds, mirroring the on-disk layout portsFromProc
+// reads.
+func fakeProcTree(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	write := func(rel, content string) {
+		t.Helper()
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, fam := range []string{"tcp", "tcp6", "udp"} {
+		data, err := os.ReadFile(filepath.Join("testdata", "proc_"+fam+".txt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		write("net/"+fam, string(data))
+	}
+	write("123/comm", "chromium\n")
+	write("456/comm", "sshd\n")
+	write("789/comm", "tailscaled\n")
+	symlink := func(pid, fd, target string) {
+		t.Helper()
+		p := filepath.Join(root, pid, "fd", fd)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	symlink("123", "5", "socket:[8759300]")
+	symlink("123", "6", "pipe:[999]") // non-socket fds are ignored
+	symlink("456", "7", "socket:[18552]")
+	symlink("789", "9", "socket:[13759695]")
+	return root
 }
