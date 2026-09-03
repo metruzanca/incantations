@@ -1,0 +1,7 @@
+# A trimmed /etc/services
+ssh              22/tcp
+domain           53/tcp
+domain           53/udp
+http             80/tcp
+https            443/tcp
+ipp              631/tcp

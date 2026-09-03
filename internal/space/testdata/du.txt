@@ -1,0 +1,5 @@
+131941395333	/mnt/data/media
+51539607552	/mnt/data/backups
+34359738368	/mnt/data/projects
+11544872117	/mnt/data/vms
+229371207680	/mnt/data

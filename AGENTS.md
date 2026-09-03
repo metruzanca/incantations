@@ -87,6 +87,36 @@ files of its own.
   (tmpfs/overlay/proc/etc.), and filesystems smaller than 1 GiB are hidden
   unless the `-a`/`--all` flag is passed (see `sizeValue`). Renders one
   progress bar per row.
+- `space` shells out to `du -x -B1 --max-depth=1` and parses with `parseDu`;
+  GNU du prints the scanned root *last*, so `parseDu` matches the root line by
+  path, not position. `Render` shows each dir's share of the root total, with
+  the same 1 GiB default cutoff as `disk`. No PATH defaults to `$HOME`
+  (`os.UserHomeDir`), which is fast compared to scanning `/`. Walking every
+  file makes it slow — the help text says so.
+- `battery` reads sysfs power-supply `uevent` files directly
+  (`$POWER_ROOT/<dev>/uevent`); `parseUevent` handles both ENERGY_* (µWh) and
+  CHARGE_* (µAh) batteries by scaling charge with the voltage. A machine with
+  no battery reports `Found=false` (-> "No battery found."), not an error, so
+  desktop users see a clean one-liner. `powerRoot` is a package var so tests
+  inject a fake `/sys/class/power_supply`. Non-Linux returns the unsupported
+  stub.
+- `ports` shells out to `ss -ltulpn` (Linux-only) like `disk` shells to `df`;
+  `parseSs` is the pure core, and `parseUsers` extracts name+PID from the
+  `users:(("name",pid=...))` column. `parseServices` reads `/etc/services`
+  for the `0.0.0.0:22 (ssh)` labels. Without root, other users' sockets show
+  no PID and group under `-`. `Render` shows TCP over IPv4 by default, grouped
+  per process (`groupByPID`, unowned last); `--udp` and `--ipv6` unhide the
+  rest (IPv6 is detected by the `[` address prefix, since ss labels the netid
+  `tcp`/`udp` for both families). An optional numeric `PORT` filters the
+  listing. `--stop PORT`/`--kill PORT` send SIGTERM/SIGKILL to the owned PIDs
+  on that port via `signalPort`; the signal itself is `signalProcess`, a
+  package var (real `syscall.Kill` on Linux, swappable in tests), with
+  `termSignal`/`killSignal` defined per build tag.
+- `net` samples `/proc/net/dev` twice (~1s apart) for live RX/TX rates
+  (`parseDev` + `computeRates` are the pure, fixture-tested bits) and resolves
+  IPs from the stdlib `net` package. Interface counters are cumulative, so a
+  counter that goes backwards (reset) reads 0 for that window. IPv6 addresses
+  are hidden unless `--ipv6` is passed (`visibleAddrs`), loopback unless `-a`.
 - Non-Linux `ram`/`cpu` use `*_unsupported.go` stubs. To support a new OS add
   a build-tagged `Sample` — keep the render/parse core untouched.
 - Hardcoded assumptions, kept intentionally simple (call them out if they

@@ -44,3 +44,67 @@ func CompactKiB(kib uint64) string {
 		return fmt.Sprintf("%.0fKB", b/1e3)
 	}
 }
+
+// HumanEnergy renders a microwatt-hour count in watt-hours (or kilowatt-hours
+// for big batteries), with a space between number and unit.
+func HumanEnergy(uwh uint64) string {
+	wh := float64(uwh) / 1e6
+	if wh >= 1000 {
+		return fmt.Sprintf("%.1f kWh", wh/1000)
+	}
+	return fmt.Sprintf("%.1f Wh", wh)
+}
+
+// CompactEnergy renders a microwatt-hour count with no space between number
+// and unit, for tight summaries such as "37.8Wh/79.3Wh".
+func CompactEnergy(uwh uint64) string {
+	wh := float64(uwh) / 1e6
+	if wh >= 1000 {
+		return fmt.Sprintf("%.1fkWh", wh/1000)
+	}
+	return fmt.Sprintf("%.1fWh", wh)
+}
+
+// HumanPower renders a microwatt count in watts (or kilowatts), with a space.
+func HumanPower(uw uint64) string {
+	w := float64(uw) / 1e6
+	switch {
+	case w >= 1000:
+		return fmt.Sprintf("%.1f kW", w/1000)
+	case w < 1:
+		return fmt.Sprintf("%.0f mW", w*1000)
+	default:
+		return fmt.Sprintf("%.1f W", w)
+	}
+}
+
+// HumanDuration renders a number of seconds as a compact "2h 05m", "45m", or
+// "30s". Zero seconds renders as "0s".
+func HumanDuration(seconds int64) string {
+	if seconds < 0 {
+		seconds = 0
+	}
+	if seconds >= 3600 {
+		return fmt.Sprintf("%dh %02dm", seconds/3600, seconds%3600/60)
+	}
+	if seconds >= 60 {
+		return fmt.Sprintf("%dm %02ds", seconds/60, seconds%60)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
+// HumanRate renders a bytes-per-second count using decimal units ("12.5 MB/s"),
+// which is what people expect for network speeds.
+func HumanRate(bps uint64) string {
+	b := float64(bps)
+	switch {
+	case b >= 1e9:
+		return fmt.Sprintf("%.1f GB/s", b/1e9)
+	case b >= 1e6:
+		return fmt.Sprintf("%.1f MB/s", b/1e6)
+	case b >= 1e3:
+		return fmt.Sprintf("%.1f KB/s", b/1e3)
+	default:
+		return fmt.Sprintf("%.0f B/s", b)
+	}
+}
