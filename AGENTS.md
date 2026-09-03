@@ -38,9 +38,12 @@ Check config drift with `goreleaser check`; snapshot builds with
 - `internal/shell` — `Generate(shell, commands)` is pure and deterministic.
   bash/zsh share one template; fish differs (`$argv`). Golden files live in
   `testdata/`; regenerate with `-update`. `init` accepts normalized names
-  (`/bin/zsh`, `zsh`, `ZSH` → `zsh`); its no-arg and `--help` screens detect
-  the caller's shell via `$SHELL` and suggest a copy-paste setup line
-  (`DetectShell`/`SetupCommand`).
+  (`/bin/zsh`, `zsh`, `ZSH` → `zsh`, via `IsShell`), optionally followed by a
+  command list (`init bash ram cpu` — shell autodetected from `$SHELL`
+  otherwise, via `DetectShell`); its no-arg and `--help` screens detect the
+  caller's shell and suggest a copy-paste setup line (`SetupCommand`).
+  `app.wrapNames` is the default command list and drops `battery` when
+  `battery.HasBattery()` is false, so desktops get no useless wrapper.
 - `internal/logutil`, `internal/units`, `internal/ui` — shared plumbing. `units`
   uses decimal GB/MB (laymen units); `ui` renders charmbracelet tables and
   progress bars and is always plain in tests (goldens stay escape-free). Enable

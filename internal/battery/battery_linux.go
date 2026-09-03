@@ -43,3 +43,11 @@ func Sample() (*Report, error) {
 	}
 	return &Report{}, nil
 }
+
+// HasBattery reports whether the system actually has a battery, so init can
+// skip generating a wrapper for a command that would always say
+// "No battery found."
+func HasBattery() bool {
+	rep, err := Sample()
+	return err == nil && rep.Found
+}

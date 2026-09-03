@@ -30,7 +30,20 @@ picks up the newest release (or pin one with `@v0.x.y`).
 
 ## Set up your shell
 
-Run `incantations init` once and follow its advice for your shell.
+Run `incantations init` once and follow its advice for your shell. It prints
+shell functions for everything the binary can do:
+
+```
+$ incantations init zsh
+# incantations init zsh (generated, do not edit)
+ram() {
+    incantations ram "$@"
+}
+...
+```
+
+On a machine with no battery, the `battery` wrapper is left out automatically.
+To install only a few utilities, name them: `incantations init bash ram cpu`.
 
 ## Examples
 

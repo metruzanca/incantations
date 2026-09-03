@@ -33,6 +33,17 @@ func Supported() []string {
 	return []string{"bash", "zsh", "fish"}
 }
 
+// IsShell reports whether name normalizes to a supported shell, so callers can
+// tell a shell argument (/bin/zsh, ZSH, zsh) apart from a command list.
+func IsShell(name string) bool {
+	for _, s := range Supported() {
+		if normalize(name) == s {
+			return true
+		}
+	}
+	return false
+}
+
 func normalize(shell string) string {
 	s := strings.ToLower(strings.TrimSpace(shell))
 	s = strings.Trim(s, "/")

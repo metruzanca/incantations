@@ -127,10 +127,15 @@ func (a *App) commandHelp(w io.Writer, e command.Entry) {
 	fmt.Fprintf(w, "incantations %s - %s\n\n%s\n", e.Name, e.Summary, strings.TrimRight(help, "\n"))
 }
 
+// batteryPresent reports whether this machine has a battery, so init can skip
+// generating a wrapper for a command that would just say "No battery found."
+// It is a variable so tests can pin it either way.
+var batteryPresent = battery.HasBattery
+
 func initSpec(reg *command.Registry) command.Entry {
 	return command.Entry{
 		Name:    "init",
-		Summary: "print shell integration code for your shell",
+		Summary: "print shell integration code for your shell (optional command list)",
 		Meta:    true,
 		HelpFunc: func() string {
 			return initSetupText()
@@ -140,13 +145,34 @@ func initSpec(reg *command.Registry) command.Entry {
 				_, err := io.WriteString(stdout, "No shell specified.\n\n"+initSetupText())
 				return err
 			}
-			names := make([]string, 0, len(reg.List()))
-			for _, e := range reg.List() {
-				if !e.Meta {
-					names = append(names, e.Name)
+			shellName := ""
+			cmdArgs := args
+			if shell.IsShell(args[0]) {
+				shellName = args[0]
+				cmdArgs = args[1:]
+			} else {
+				shellName = shell.DetectShell(os.Getenv)
+				if shellName == "" {
+					return fmt.Errorf("couldn't tell which shell you use; pass bash, zsh, or fish followed by the commands to install")
 				}
 			}
-			src, err := shell.Generate(args[0], names)
+			var names []string
+			if len(cmdArgs) > 0 {
+				names = make([]string, 0, len(cmdArgs))
+				for _, name := range cmdArgs {
+					e, ok := reg.Get(name)
+					switch {
+					case !ok:
+						return fmt.Errorf("unknown command %q (shells: bash, zsh, fish)", name)
+					case e.Meta:
+						return fmt.Errorf("%q is a meta command and cannot be wrapped", name)
+					}
+					names = append(names, name)
+				}
+			} else {
+				names = wrapNames(reg)
+			}
+			src, err := shell.Generate(shellName, names)
 			if err != nil {
 				return err
 			}
@@ -156,14 +182,33 @@ func initSpec(reg *command.Registry) command.Entry {
 	}
 }
 
+// wrapNames is the default command list: every shell utility, except battery
+// on machines that have no battery.
+func wrapNames(reg *command.Registry) []string {
+	names := make([]string, 0, len(reg.List()))
+	for _, e := range reg.List() {
+		if e.Meta {
+			continue
+		}
+		if e.Name == "battery" && !batteryPresent() {
+			continue
+		}
+		names = append(names, e.Name)
+	}
+	return names
+}
+
 // initSetupText builds the copy-paste setup screen for the caller's shell.
 func initSetupText() string {
 	detected := shell.DetectShell(os.Getenv)
 	var b strings.Builder
 	b.WriteString("Usage:\n")
-	b.WriteString("  incantations init <bash|zsh|fish>\n")
+	b.WriteString("  incantations init [bash|zsh|fish] [command ...]\n")
 	b.WriteString(`  eval "$(incantations init bash)"`)
 	b.WriteString("\n\n")
+	b.WriteString("Without arguments every utility is installed. Pass names to install\n")
+	b.WriteString("only those, e.g. `init ram cpu`. On machines without a battery the\n")
+	b.WriteString("battery wrapper is omitted automatically.\n\n")
 	switch detected {
 	case "bash", "zsh", "fish":
 		fmt.Fprintf(&b, "Your shell looks like %s. Copy-paste this to install it:\n\n", detected)

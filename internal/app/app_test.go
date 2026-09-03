@@ -271,3 +271,87 @@ func TestRunCommandError(t *testing.T) {
 		t.Errorf("stderr = %q", errStr)
 	}
 }
+
+func TestInitCommandList(t *testing.T) {
+	out, _, code := run(t, "init", "bash", "ram", "cpu")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	for _, want := range []string{"ram() {", "cpu() {"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("init command list missing %q\n%s", want, out)
+		}
+	}
+	for _, not := range []string{"disk() {", "space() {", "battery() {", "init() {"} {
+		if strings.Contains(out, not) {
+			t.Errorf("init command list should not include %q\n%s", not, out)
+		}
+	}
+}
+
+func TestInitCommandListDetectsShell(t *testing.T) {
+	t.Setenv("SHELL", "/bin/zsh")
+	out, _, code := run(t, "init", "space")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	if !strings.Contains(out, "space() {") {
+		t.Errorf("init with detected shell should emit a space function:\n%s", out)
+	}
+	if strings.Contains(out, "ram() {") {
+		t.Errorf("only requested commands should be wrapped:\n%s", out)
+	}
+}
+
+func TestInitUnknownCommand(t *testing.T) {
+	_, errOut, code := run(t, "init", "bash", "nope")
+	if code != 1 {
+		t.Fatalf("exit = %d, want 1", code)
+	}
+	if !strings.Contains(errOut, "unknown command") {
+		t.Errorf("stderr should report the unknown command, got %q", errOut)
+	}
+}
+
+func TestInitRejectsMetaCommand(t *testing.T) {
+	_, errOut, code := run(t, "init", "bash", "init")
+	if code != 1 {
+		t.Fatalf("exit = %d, want 1", code)
+	}
+	if !strings.Contains(errOut, "meta command") {
+		t.Errorf("stderr should reject meta commands, got %q", errOut)
+	}
+}
+
+func TestInitNoShellDetectedWithCommands(t *testing.T) {
+	t.Setenv("SHELL", "")
+	t.Setenv("BASH_VERSION", "")
+	t.Setenv("ZSH_VERSION", "")
+	_, errOut, code := run(t, "init", "ram")
+	if code != 1 {
+		t.Fatalf("exit = %d, want 1", code)
+	}
+	if !strings.Contains(errOut, "shell") {
+		t.Errorf("stderr should ask for a shell, got %q", errOut)
+	}
+}
+
+func TestInitSkipsBatteryWhenAbsent(t *testing.T) {
+	old := batteryPresent
+	batteryPresent = func() bool { return false }
+	defer func() { batteryPresent = old }()
+
+	out, _, code := run(t, "init", "bash")
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0", code)
+	}
+	if strings.Contains(out, "battery() {") {
+		t.Errorf("battery wrapper should be omitted when no battery is present:\n%s", out)
+	}
+
+	batteryPresent = func() bool { return true }
+	out, _, _ = run(t, "init", "bash")
+	if !strings.Contains(out, "battery() {") {
+		t.Errorf("battery wrapper should appear when a battery is present:\n%s", out)
+	}
+}

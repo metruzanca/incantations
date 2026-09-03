@@ -11,3 +11,8 @@ import (
 func Sample() (*Report, error) {
 	return nil, fmt.Errorf("not yet supported on %s", runtime.GOOS)
 }
+
+// HasBattery reports false on platforms that cannot read a battery.
+func HasBattery() bool {
+	return false
+}
