@@ -18,6 +18,7 @@ type `ram`, `cpu`, or `disk`.
 | `ports` | Which TCP ports are listening, grouped by process; `ports 8080` checks one; `--stop`/`--kill` signal a port; `--udp`/`--ipv6` show the rest |
 | `net` | Per-interface IP addresses (IPv4) and live transfer rates; `--ipv6` and `-a` reveal the rest |
 | `battery` | Charge state, drain/charge rate, time remaining (prints a notice on desktops with no battery) |
+| `format` | Convert a video to another format (mp4, webm, mkv, mov, avi, gif); `--discord` picks the right one automatically |
 
 ## Install
 
@@ -189,3 +190,38 @@ $ battery
  BATTERY  Discharging  ████████░░░░░░░░░░░░  38%  37.8Wh/79.3Wh (41.5Wh left)
 Rate 22.0 W · 1h 42m left · Design health 88%
 ```
+
+### format
+
+Replaces remembering the ffmpeg incantation. `format clip.webm` opens a dropdown
+of the formats that clip can become (mp4, webm, mkv, mov, avi, gif) — pick one
+with the arrow keys and enter, and ffmpeg does the rest. The result lands next
+to the original with the new extension, overwriting an existing file silently.
+
+Pass a target flag to skip the dropdown, or `--discord` to convert to whatever
+Discord will accept: `mp4` when the video has audio, `gif` when it's silent (a
+silent webm upload will be rejected, but a gif always works).
+
+```
+$ format clip.webm
+Convert clip.webm to:
+
+> .mp4
+  .webm
+  .mkv
+  .mov
+  .avi
+  .gif
+
+↑/↓ choose · enter convert · q quit
+```
+
+```
+$ format --discord clip.webm
+clip.webm → .gif (silent (no audio))
+wrote clip.gif
+```
+
+The dropdown needs a real terminal — when piping, use `format --gif clip.webm`,
+`--discord`, or `format --list clip.webm` to print the choices. Needs ffmpeg
+installed (`ffprobe` too, for `--discord`).

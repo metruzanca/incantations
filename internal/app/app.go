@@ -13,6 +13,7 @@ import (
 	"github.com/metruzanca/incantations/internal/command"
 	"github.com/metruzanca/incantations/internal/cpu"
 	"github.com/metruzanca/incantations/internal/disk"
+	"github.com/metruzanca/incantations/internal/format"
 	"github.com/metruzanca/incantations/internal/logutil"
 	"github.com/metruzanca/incantations/internal/net"
 	"github.com/metruzanca/incantations/internal/ports"
@@ -48,6 +49,7 @@ func New(stdout, stderr io.Writer, extra ...command.Entry) *App {
 	reg.Add(ports.Spec())
 	reg.Add(net.Spec())
 	reg.Add(space.Spec())
+	reg.Add(format.Spec())
 	for _, e := range extra {
 		reg.Add(e)
 	}
