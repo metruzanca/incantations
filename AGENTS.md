@@ -127,16 +127,20 @@ files of its own.
   counter that goes backwards (reset) reads 0 for that window. IPv6 addresses
   are hidden unless `--ipv6` is passed (`visibleAddrs`), loopback unless `-a`.
 - `format` shells out to `ffmpeg` for conversions and `ffprobe` for the
-  `--discord` audio check; the pure core is the conversion table (`videoExts`,
-  symmetric: every source converts to every other format except itself), arg
-  parsing (`parseOpts`, target flags are the extensions), and `hasAudioStream`
-  on ffprobe output. The interactive dropdown (`picker.go`) is a minimal
-  bubbletea model rendered to stderr — its Update/View are terminal-free and
-  unit-tested; the TTY check (`interactive`) rejects piped stdin so stdout
-  stays pipeable. `runFFmpeg`/`runProbe` are package vars swappable in tests
-  (like `ports.signalProcess`). `--discord` converts to mp4 when the video has
-  audio, gif when silent, and errors (never clobbers) when the source already
-  is the decided target. Overwrites outputs silently (`-y`).
+  `--discord` audio check; the pure core is the conversion tables (`videoExts`
+  and `imageExts`, each symmetric: every source converts to every other format
+  in its table except itself), arg parsing (`parseOpts`, target flags are the
+  extensions), and `hasAudioStream` on ffprobe output. Videos stay in the video
+  table, images in the image table; `svg` is source-only (ffmpeg can decode it
+  but has no encoder) and `normalize` folds aliases (`jpeg`/`tif`) into their
+  canonical formats so a `.jpeg` converts as a `.jpg`. The interactive dropdown
+  (`picker.go`) is a minimal bubbletea model rendered to stderr — its
+  Update/View are terminal-free and unit-tested; the TTY check (`interactive`)
+  rejects piped stdin so stdout stays pipeable. `runFFmpeg`/`runProbe` are
+  package vars swappable in tests (like `ports.signalProcess`). `--discord`
+  converts to mp4 when the video has audio, gif when silent, errors (never
+  clobbers) when the source already is the decided target, and is rejected for
+  images. Overwrites outputs silently (`-y`).
 - Non-Linux `ram`/`cpu` use `*_unsupported.go` stubs. To support a new OS add
   a build-tagged `Sample` — keep the render/parse core untouched.
 - Hardcoded assumptions, kept intentionally simple (call them out if they

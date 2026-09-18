@@ -19,6 +19,8 @@ func TestParseOpts(t *testing.T) {
 		{[]string{"--mp4", "clip.webm"}, opts{file: "clip.webm", target: "mp4"}, false},
 		{[]string{"--discord", "clip.webm"}, opts{file: "clip.webm", discord: true}, false},
 		{[]string{"--list", "clip.webm"}, opts{file: "clip.webm", list: true}, false},
+		{[]string{"--png", "icon.svg"}, opts{file: "icon.svg", target: "png"}, false},
+		{[]string{"--svg", "icon.png"}, opts{}, true}, // svg is source-only, never a target
 		{[]string{"--discord", "--list", "clip.webm"}, opts{file: "clip.webm", discord: true, list: true}, false},
 		{[]string{"--discord", "--gif", "clip.webm"}, opts{}, true},  // conflicting modes
 		{[]string{"--list", "--gif", "clip.webm"}, opts{}, true},     // list + target
@@ -47,6 +49,10 @@ func TestTargetsFor(t *testing.T) {
 		"gif":  {"mp4", "webm", "mkv", "mov", "avi"},
 		"MOV":  {"mp4", "webm", "mkv", "avi", "gif"},
 		".avi": {"mp4", "webm", "mkv", "mov", "gif"},
+		"png":  {"jpg", "webp", "bmp", "tiff", "avif"},
+		"jpg":  {"png", "webp", "bmp", "tiff", "avif"},
+		"jpeg": {"png", "webp", "bmp", "tiff", "avif"},
+		"svg":  {"png", "jpg", "webp", "bmp", "tiff", "avif"},
 	}
 	for in, want := range cases {
 		if got := targetsFor(in); strings.Join(got, ",") != strings.Join(want, ",") {
@@ -61,9 +67,35 @@ func TestIsVideoExt(t *testing.T) {
 			t.Errorf("isVideoExt(%q) = false, want true", ext)
 		}
 	}
-	for _, ext := range []string{"png", "mp3", "", ".txt"} {
+	for _, ext := range []string{"png", "svg", "mp3", "", ".txt"} {
 		if isVideoExt(ext) {
 			t.Errorf("isVideoExt(%q) = true, want false", ext)
+		}
+	}
+}
+
+func TestIsImageExt(t *testing.T) {
+	for _, ext := range []string{"png", "JPG", ".svg", "jpeg", "webp", "bmp", "tiff", "tif"} {
+		if !isImageExt(ext) {
+			t.Errorf("isImageExt(%q) = false, want true", ext)
+		}
+	}
+	for _, ext := range []string{"mp4", "gif", "txt", ""} {
+		if isImageExt(ext) {
+			t.Errorf("isImageExt(%q) = true, want false", ext)
+		}
+	}
+}
+
+func TestIsTargetExt(t *testing.T) {
+	for _, ext := range []string{"mp4", "gif", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "avif"} {
+		if !isTargetExt(ext) {
+			t.Errorf("isTargetExt(%q) = false, want true", ext)
+		}
+	}
+	for _, ext := range []string{"svg", "txt"} {
+		if isTargetExt(ext) {
+			t.Errorf("isTargetExt(%q) = true, want false", ext)
 		}
 	}
 }
@@ -174,10 +206,46 @@ func TestRunConvertErrors(t *testing.T) {
 		!strings.Contains(err.Error(), "already .mp4") {
 		t.Errorf("same-format target should error, got %v", err)
 	}
-	file = tmpVideo(t, "clip.png")
+	file = tmpVideo(t, "clip.txt")
 	if err := run([]string{"--gif", file}, io.Discard); err == nil ||
-		!strings.Contains(err.Error(), "not a supported video format") {
+		!strings.Contains(err.Error(), "not a supported media format") {
 		t.Errorf("unsupported source should error, got %v", err)
+	}
+}
+
+func TestRunImageConvert(t *testing.T) {
+	file := tmpVideo(t, "icon.svg")
+	old := runFFmpeg
+	var gotIn, gotOut string
+	runFFmpeg = func(in, out string) error { gotIn, gotOut = in, out; return nil }
+	defer func() { runFFmpeg = old }()
+	var out strings.Builder
+	if err := run([]string{"--png", file}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if gotIn != file || gotOut != filepath.Join(filepath.Dir(file), "icon.png") {
+		t.Errorf("ffmpeg called with (%s, %s), want (%s, icon.png)", gotIn, gotOut, file)
+	}
+	if !strings.Contains(out.String(), "wrote") {
+		t.Errorf("output missing wrote line:\n%s", out.String())
+	}
+}
+
+func TestRunImageErrors(t *testing.T) {
+	file := tmpVideo(t, "icon.png")
+	if err := run([]string{"--png", file}, io.Discard); err == nil ||
+		!strings.Contains(err.Error(), "already .png") {
+		t.Errorf("same-format image should error, got %v", err)
+	}
+	file = tmpVideo(t, "icon.jpeg")
+	if err := run([]string{"--jpg", file}, io.Discard); err == nil ||
+		!strings.Contains(err.Error(), "already .jpeg") {
+		t.Errorf("alias same-format should error, got %v", err)
+	}
+	file = tmpVideo(t, "icon.png")
+	if err := run([]string{"--discord", file}, io.Discard); err == nil ||
+		!strings.Contains(err.Error(), "image") {
+		t.Errorf("--discord on an image should error, got %v", err)
 	}
 }
 

@@ -20,10 +20,37 @@ import (
 // mp4 again.
 var videoExts = []string{"mp4", "webm", "mkv", "mov", "avi", "gif"}
 
+// imageExts are the raster image formats this command converts between
+// (symmetric, like the video table). svg is handled separately: ffmpeg can
+// decode it but has no svg encoder, so it is only ever a source.
+var imageExts = []string{"png", "jpg", "webp", "bmp", "tiff", "avif"}
+
+// svgExt is a source-only image format. ffmpeg renders it to any raster image
+// (with librsvg) but cannot encode svg, so nothing converts to it.
+const svgExt = "svg"
+
+// aliases maps non-canonical image extensions to the format they really are.
+// A .jpeg and a .tif are the same data as a .jpg and a .tiff, so they convert
+// as those.
+var aliases = map[string]string{
+	"jpeg": "jpg",
+	"tif":  "tiff",
+}
+
+// normalize lowercases ext (with or without a leading dot) and resolves
+// aliases, so jpg and jpeg are treated as one format.
+func normalize(ext string) string {
+	ext = strings.ToLower(strings.TrimPrefix(ext, "."))
+	if a, ok := aliases[ext]; ok {
+		return a
+	}
+	return ext
+}
+
 // isVideoExt reports whether ext (with or without a leading dot) is a
 // supported video format.
 func isVideoExt(ext string) bool {
-	ext = strings.TrimPrefix(strings.ToLower(ext), ".")
+	ext = normalize(ext)
 	for _, e := range videoExts {
 		if e == ext {
 			return true
@@ -32,12 +59,50 @@ func isVideoExt(ext string) bool {
 	return false
 }
 
-// targetsFor returns the formats a source of the given extension can convert
-// to: every supported video format except itself, in a fixed order.
-func targetsFor(ext string) []string {
-	ext = strings.TrimPrefix(strings.ToLower(ext), ".")
-	out := make([]string, 0, len(videoExts)-1)
+// isImageExt reports whether ext names a supported image format, including
+// svg and the alias names (jpeg, tif).
+func isImageExt(ext string) bool {
+	ext = normalize(ext)
+	if ext == svgExt {
+		return true
+	}
+	for _, e := range imageExts {
+		if e == ext {
+			return true
+		}
+	}
+	return false
+}
+
+// isTargetExt reports whether ext names a format this command can convert TO.
+// Alias names resolve to their real format, so --jpeg works like --jpg; only
+// svg has no encoder and is never a target.
+func isTargetExt(ext string) bool {
+	ext = normalize(ext)
 	for _, e := range videoExts {
+		if e == ext {
+			return true
+		}
+	}
+	for _, e := range imageExts {
+		if e == ext {
+			return true
+		}
+	}
+	return false
+}
+
+// targetsFor returns the formats a source of the given extension can convert
+// to: every format in its table except itself, in a fixed order. Images stay
+// in the image table, so an svg becomes a png and a png never becomes a video.
+func targetsFor(ext string) []string {
+	ext = normalize(ext)
+	table := videoExts
+	if isImageExt(ext) {
+		table = imageExts
+	}
+	out := make([]string, 0, len(table))
+	for _, e := range table {
 		if e != ext {
 			out = append(out, e)
 		}
@@ -54,8 +119,8 @@ type opts struct {
 }
 
 // parseOpts parses flags and the single FILE argument. The target flags are
-// the video extensions (--gif, --mp4, --webm, --mkv, --mov, --avi); --discord
-// and --list are also accepted.
+// the convert-to extensions (--mp4, --webm, --gif, --png, --jpg, ...);
+// --discord and --list are also accepted.
 func parseOpts(args []string) (opts, error) {
 	var o opts
 	for _, a := range args {
@@ -67,23 +132,23 @@ func parseOpts(args []string) (opts, error) {
 				o.discord = true
 			case name == "list":
 				o.list = true
-			case isVideoExt(name):
+			case isTargetExt(name):
 				if o.target != "" {
 					return o, fmt.Errorf("cannot convert to two formats (%s and %s)", o.target, name)
 				}
 				o.target = name
 			default:
-				return o, fmt.Errorf("unknown flag --%s (targets: --mp4 --webm --mkv --mov --avi --gif; also --discord and --list)", name)
+				return o, fmt.Errorf("unknown flag --%s (targets: --mp4 --webm --mkv --mov --avi --gif --png --jpg --webp --bmp --tiff --avif; also --discord and --list)", name)
 			}
 		case o.file != "":
-			return o, fmt.Errorf("usage: incantations format [--mp4|--webm|--mkv|--mov|--avi|--gif|--discord] [--list] FILE")
+			return o, fmt.Errorf("usage: incantations format [--mp4|--webm|--mkv|--mov|--avi|--gif|--png|--jpg|--webp|--bmp|--tiff|--avif|--discord] [--list] FILE")
 		default:
 			o.file = a
 		}
 	}
 	switch {
 	case o.file == "":
-		return o, fmt.Errorf("usage: incantations format [--mp4|--webm|--mkv|--mov|--avi|--gif|--discord] [--list] FILE")
+		return o, fmt.Errorf("usage: incantations format [--mp4|--webm|--mkv|--mov|--avi|--gif|--png|--jpg|--webp|--bmp|--tiff|--avif|--discord] [--list] FILE")
 	case o.discord && o.target != "":
 		return o, fmt.Errorf("cannot combine --discord with a target format (--%s)", o.target)
 	case o.list && o.target != "":
@@ -167,16 +232,18 @@ func discordDecision(file string) (target, reason string, err error) {
 func Spec() command.Entry {
 	return command.Entry{
 		Name:    "format",
-		Summary: "convert a video to another format (mp4, webm, mkv, mov, avi, gif)",
+		Summary: "convert a video or image to another format (mp4, webm, mkv, mov, avi, gif, png, jpg, webp, bmp, tiff, avif)",
 		Help: `Usage:
   incantations format FILE
-  incantations format --gif FILE        # or --mp4 --webm --mkv --mov --avi
+  incantations format --gif FILE        # or --mp4 --webm --mkv --mov --avi --png --jpg --webp --bmp --tiff --avif
   incantations format --discord FILE    # mp4 if it has audio, gif if silent
   incantations format --list FILE
 
 Shows a dropdown of the formats FILE can convert to and converts the one you
-pick, using ffmpeg (which must be installed). The result lands next to FILE
-with the new extension, overwriting an existing file silently.
+pick, using ffmpeg (which must be installed). Videos convert to videos and
+images to images: an svg becomes a png, a png becomes a jpg, and so on (svg
+needs an ffmpeg built with the svg decoder, e.g. librsvg). The result lands
+next to FILE with the new extension, overwriting an existing file silently.
 
 Pass a target flag to skip the dropdown, --discord to pick what Discord wants
 (mp4 for a video with audio, gif for a silent one), or --list to print the
@@ -201,15 +268,18 @@ func run(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if !isVideoExt(ext) {
-		return fmt.Errorf("%q is not a supported video format (mp4, webm, mkv, mov, avi, gif)", o.file)
+	if !isVideoExt(ext) && !isImageExt(ext) {
+		return fmt.Errorf("%q is not a supported media format (video: mp4, webm, mkv, mov, avi, gif; image: png, jpg, webp, svg, bmp, tiff, avif)", o.file)
+	}
+	if o.discord && isImageExt(ext) {
+		return fmt.Errorf("%s is an image; --discord only applies to videos", o.file)
 	}
 
 	switch {
 	case o.list:
 		return listTargets(stdout, o.file, ext, o)
 	case o.target != "":
-		if o.target == ext {
+		if normalize(o.target) == normalize(ext) {
 			return fmt.Errorf("%s is already .%s; nothing to convert", o.file, ext)
 		}
 		return convertFile(stdout, o.file, o.target)
@@ -218,7 +288,7 @@ func run(args []string, stdout io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if target == ext {
+		if normalize(target) == normalize(ext) {
 			return fmt.Errorf("%s is already .%s; nothing to convert for discord", o.file, ext)
 		}
 		fmt.Fprintf(stdout, "%s \u2192 .%s (%s)\n", filepath.Base(o.file), target, reason)
