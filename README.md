@@ -19,6 +19,7 @@ type `ram`, `cpu`, or `disk`.
 | `net` | Per-interface IP addresses (IPv4) and live transfer rates; `--ipv6` and `-a` reveal the rest |
 | `battery` | Charge state, drain/charge rate, time remaining (prints a notice on desktops with no battery) |
 | `format` | Convert a video or image to another format (mp4, webm, mkv, mov, avi, gif, png, jpg, webp, bmp, tiff, avif); `--discord` picks the right video format automatically |
+| `tag` | List git tags, bump the latest version and cut the next one, and push it; `tag v1.2.3 --push` skips the TUI |
 
 ## Install
 
@@ -228,3 +229,28 @@ wrote clip.gif
 The dropdown needs a real terminal — when piping, use `format --gif clip.webm`,
 `--png icon.svg`, `--discord`, or `format --list clip.webm` to print the
 choices. Needs ffmpeg installed (`ffprobe` too, for `--discord`).
+
+### tag
+
+Replaces the `git tag` + `git push` release dance. `tag` opens a small TUI of
+your tags, newest version first. Press `b` to bump the latest version's minor
+number and create it in one keystroke — a button instead of a prompt — or `n`
+to edit a name yourself. In the editor the arrow keys bump the number under the
+cursor and reset the lower components, so bumping the major clears the minor
+and patch:
+
+```
+$ tag
+Tags
+
+> v1.10.0
+  v1.2.0
+  v0.1.0
+  release
+
+b bump to v1.11.0 · ↑/↓ move · n new tag · q quit
+```
+
+After a tag is created the TUI offers to push it and its commits with one key.
+Pass a name to skip the TUI (`tag v1.11.0`), add `--push` to push the current
+branch and the tag, and when piped, bare `tag` prints the tags one per line.

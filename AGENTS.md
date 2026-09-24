@@ -141,6 +141,16 @@ files of its own.
   converts to mp4 when the video has audio, gif when silent, errors (never
   clobbers) when the source already is the decided target, and is rejected for
   images. Overwrites outputs silently (`-y`).
+- `tag` lists git tags and cuts release tags. The pure core is `version.go`
+  (`bumpAt` increments the digit run under the cursor and resets lower
+  segments, `latestVersion`, `bumpMinor`, `sortTags`); git access goes through
+  the `gitRun` package var so tests stub it. Bare `tag` opens a bubbletea TUI
+  (`tui.go`, the same terminal-free Update/View pattern as `format`'s picker)
+  and is a no-op TTY check when piped, where it prints tags one per line. The
+  TUI's `b` key is the `tag bump` feature as a button: bump the latest minor
+  and create it in one press, no prompt, then a one-key push offer. `tag NAME`
+  and `--push` skip the TUI; `pushTagWithCommits` pushes the branch before the
+  tag so the remote never gets a tag for an unpushed commit.
 - Non-Linux `ram`/`cpu` use `*_unsupported.go` stubs. To support a new OS add
   a build-tagged `Sample` — keep the render/parse core untouched.
 - Hardcoded assumptions, kept intentionally simple (call them out if they

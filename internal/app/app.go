@@ -21,6 +21,7 @@ import (
 	"github.com/metruzanca/incantations/internal/shell"
 	"github.com/metruzanca/incantations/internal/space"
 	"github.com/metruzanca/incantations/internal/sys"
+	"github.com/metruzanca/incantations/internal/tag"
 )
 
 // Version may be overridden at build time with
@@ -50,6 +51,7 @@ func New(stdout, stderr io.Writer, extra ...command.Entry) *App {
 	reg.Add(net.Spec())
 	reg.Add(space.Spec())
 	reg.Add(format.Spec())
+	reg.Add(tag.Spec())
 	for _, e := range extra {
 		reg.Add(e)
 	}
