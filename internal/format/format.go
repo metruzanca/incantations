@@ -245,6 +245,11 @@ images to images: an svg becomes a png, a png becomes a jpg, and so on (svg
 needs an ffmpeg built with the svg decoder, e.g. librsvg). The result lands
 next to FILE with the new extension, overwriting an existing file silently.
 
+FILE may be a glob, so incantations format "downloads/*.webp" --png converts
+every match. Quote the pattern so the shell passes it through; the dropdown
+only works with a single file, so a target flag (or --discord/--list) is
+required when the pattern matches more than one.
+
 Pass a target flag to skip the dropdown, --discord to pick what Discord wants
 (mp4 for a video with audio, gif for a silent one), or --list to print the
 choices without converting. The dropdown needs a terminal; when piped, use a
@@ -255,46 +260,82 @@ target flag instead.`,
 	}
 }
 
-// run executes one format invocation.
+// expandFiles resolves the FILE argument, which may be a shell glob (typically
+// quoted, e.g. "downloads/*.webp"). A pattern with no metacharacters is passed
+// through untouched so a missing literal file keeps its precise stat error; a
+// real pattern must match at least one file. Matches come from filepath.Glob,
+// which already sorts them.
+func expandFiles(arg string) ([]string, error) {
+	if !strings.ContainsAny(arg, "*?[") {
+		return []string{arg}, nil
+	}
+	matches, err := filepath.Glob(arg)
+	if err != nil {
+		return nil, fmt.Errorf("bad pattern %q: %w", arg, err)
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no files match %q", arg)
+	}
+	return matches, nil
+}
+
+// run executes one format invocation over every file the FILE argument names.
 func run(args []string, stdout io.Writer) error {
 	o, err := parseOpts(args)
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(o.file); err != nil {
-		return fmt.Errorf("%s: %w", o.file, err)
+	files, err := expandFiles(o.file)
+	if err != nil {
+		return err
 	}
-	ext, err := extOf(o.file)
+	if len(files) > 1 && !o.list && o.target == "" && !o.discord {
+		return fmt.Errorf("%d files match %q; the dropdown converts one at a time, pass a target flag (--png, --gif, ...) to convert them all", len(files), o.file)
+	}
+	for _, file := range files {
+		if err := runOne(stdout, o, file); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// runOne converts or lists a single resolved file.
+func runOne(stdout io.Writer, o opts, file string) error {
+	if _, err := os.Stat(file); err != nil {
+		return fmt.Errorf("%s: %w", file, err)
+	}
+	ext, err := extOf(file)
 	if err != nil {
 		return err
 	}
 	if !isVideoExt(ext) && !isImageExt(ext) {
-		return fmt.Errorf("%q is not a supported media format (video: mp4, webm, mkv, mov, avi, gif; image: png, jpg, webp, svg, bmp, tiff, avif)", o.file)
+		return fmt.Errorf("%q is not a supported media format (video: mp4, webm, mkv, mov, avi, gif; image: png, jpg, webp, svg, bmp, tiff, avif)", file)
 	}
 	if o.discord && isImageExt(ext) {
-		return fmt.Errorf("%s is an image; --discord only applies to videos", o.file)
+		return fmt.Errorf("%s is an image; --discord only applies to videos", file)
 	}
 
 	switch {
 	case o.list:
-		return listTargets(stdout, o.file, ext, o)
+		return listTargets(stdout, file, ext, o)
 	case o.target != "":
 		if normalize(o.target) == normalize(ext) {
-			return fmt.Errorf("%s is already .%s; nothing to convert", o.file, ext)
+			return fmt.Errorf("%s is already .%s; nothing to convert", file, ext)
 		}
-		return convertFile(stdout, o.file, o.target)
+		return convertFile(stdout, file, o.target)
 	case o.discord:
-		target, reason, err := discordDecision(o.file)
+		target, reason, err := discordDecision(file)
 		if err != nil {
 			return err
 		}
 		if normalize(target) == normalize(ext) {
-			return fmt.Errorf("%s is already .%s; nothing to convert for discord", o.file, ext)
+			return fmt.Errorf("%s is already .%s; nothing to convert for discord", file, ext)
 		}
-		fmt.Fprintf(stdout, "%s \u2192 .%s (%s)\n", filepath.Base(o.file), target, reason)
-		return convertFile(stdout, o.file, target)
+		fmt.Fprintf(stdout, "%s \u2192 .%s (%s)\n", filepath.Base(file), target, reason)
+		return convertFile(stdout, file, target)
 	default:
-		return interactive(stdout, o.file, ext)
+		return interactive(stdout, file, ext)
 	}
 }
 

@@ -231,6 +231,66 @@ func TestRunImageConvert(t *testing.T) {
 	}
 }
 
+func TestExpandFiles(t *testing.T) {
+	got, err := expandFiles("clip.webm")
+	if err != nil || len(got) != 1 || got[0] != "clip.webm" {
+		t.Errorf("literal expandFiles = %v, %v; want [clip.webm]", got, err)
+	}
+
+	dir := t.TempDir()
+	for _, n := range []string{"a.webp", "b.webp", "c.png"} {
+		if err := os.WriteFile(filepath.Join(dir, n), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err = expandFiles(filepath.Join(dir, "*.webp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || filepath.Base(got[0]) != "a.webp" || filepath.Base(got[1]) != "b.webp" {
+		t.Errorf("glob expandFiles = %v, want a.webp b.webp sorted", got)
+	}
+
+	if _, err := expandFiles(filepath.Join(dir, "*.gif")); err == nil ||
+		!strings.Contains(err.Error(), "no files match") {
+		t.Errorf("no-match glob should error, got %v", err)
+	}
+	if _, err := expandFiles(filepath.Join(dir, "a[.webp")); err == nil ||
+		!strings.Contains(err.Error(), "bad pattern") {
+		t.Errorf("malformed glob should error, got %v", err)
+	}
+}
+
+func TestRunGlob(t *testing.T) {
+	dir := t.TempDir()
+	for _, n := range []string{"a.webp", "b.webp"} {
+		if err := os.WriteFile(filepath.Join(dir, n), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := runFFmpeg
+	var outs []string
+	runFFmpeg = func(in, out string) error { outs = append(outs, out); return nil }
+	defer func() { runFFmpeg = old }()
+
+	var out strings.Builder
+	if err := run([]string{"--png", filepath.Join(dir, "*.webp")}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(outs) != 2 || !strings.HasSuffix(outs[0], "a.png") || !strings.HasSuffix(outs[1], "b.png") {
+		t.Errorf("glob convert outputs = %v, want a.png b.png", outs)
+	}
+	if n := strings.Count(out.String(), "wrote"); n != 2 {
+		t.Errorf("expected two wrote lines, got %d:\n%s", n, out.String())
+	}
+
+	// A multi-file glob cannot open a single-file dropdown.
+	if err := run([]string{filepath.Join(dir, "*.webp")}, io.Discard); err == nil ||
+		!strings.Contains(err.Error(), "target flag") {
+		t.Errorf("multi-file glob without target should error, got %v", err)
+	}
+}
+
 func TestRunImageErrors(t *testing.T) {
 	file := tmpVideo(t, "icon.png")
 	if err := run([]string{"--png", file}, io.Discard); err == nil ||
